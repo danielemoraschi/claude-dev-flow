@@ -1,6 +1,6 @@
 ---
 name: lets-do
-description: Start planning a new piece of work with the user's standing defaults - the clean-code and code-modularizer skills read up front and applied throughout the plan, and a /quality-suite pass as a quality gate. Invoked as "/dev-flow:lets-do <task>"; anything the user says in the task overrides these defaults.
+description: Start planning a new piece of work with the user's standing defaults - the clean-code and code-modularizer skills read up front and applied throughout the plan, and a /quality-suite pass as a quality gate. Invoked as /dev-flow:lets-do followed by the task; anything the user says in the task overrides these defaults.
 disable-model-invocation: true
 ---
 
