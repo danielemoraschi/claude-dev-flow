@@ -1,0 +1,18 @@
+{
+  "name": "dev-flow",
+  "version": "0.1.0",
+  "description": "Plan with clean code and modularity built in from the start (/lets-do), then run the full pre-merge quality chain end to end (/quality-suite).",
+  "author": {
+    "name": "danielemoraschi"
+  },
+  "homepage": "https://github.com/danielemoraschi/claude-dev-flow",
+  "repository": "https://github.com/danielemoraschi/claude-dev-flow",
+  "license": "MIT",
+  "keywords": [
+    "planning",
+    "code-review",
+    "clean-code",
+    "refactoring",
+    "quality"
+  ]
+}

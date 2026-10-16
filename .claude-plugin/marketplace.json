@@ -1,0 +1,16 @@
+{
+  "name": "dev-flow",
+  "owner": {
+    "name": "danielemoraschi"
+  },
+  "metadata": {
+    "description": "Planning and pre-merge quality skills for Claude Code."
+  },
+  "plugins": [
+    {
+      "name": "dev-flow",
+      "source": "./",
+      "description": "Plan with clean code and modularity built in from the start (/lets-do), then run the full pre-merge quality chain end to end (/quality-suite)."
+    }
+  ]
+}
