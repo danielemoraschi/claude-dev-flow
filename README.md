@@ -3,7 +3,7 @@
 A Claude Code plugin for planning and finishing changes.
 
 - `/dev-flow:lets-do <task>`: manual-only (Claude won't load it on its own). Plans the task with clean-code and modularity built into the plan from the start, and a `/dev-flow:quality-suite` pass as a quality gate. Anything you say in the task overrides the defaults ("ignore code-modularizer", "no quality-suite").
-- `/dev-flow:quality-suite`: runs the pre-merge chain end to end on the current branch, fixing as it goes: code-modularizer, `/simplify`, `/security-review` (when the change calls for it), `/code-review high --fix` (twice when warranted), clean-code, then lint, typecheck and tests. All that's left is to commit and merge.
+- `/dev-flow:quality-suite`: runs the pre-merge chain end to end on the current branch, fixing as it goes: code-modularizer, `/simplify`, `/security-review` (when the change calls for it), `/code-review high --fix`, clean-code, then lint, typecheck and tests. Each step runs again while it keeps finding material issues (up to 3 passes), using subagents for fresh-eyes repeat passes and large diffs. All that's left is to commit and merge.
 - `clean-code` and `code-modularizer`: the guidance the other two use; also usable on their own.
 
 `/simplify`, `/code-review` and `/security-review` are built into Claude Code.
