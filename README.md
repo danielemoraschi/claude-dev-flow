@@ -2,13 +2,131 @@
 
 A Claude Code plugin for planning and finishing changes.
 
-- `/dev-flow:lets-do <task>`: manual-only (Claude won't load it on its own). Plans the task with clean-code and modularity built into the plan from the start, and a `/dev-flow:quality-suite` pass as a quality gate. Anything you say in the task overrides the defaults ("ignore code-modularizer", "no quality-suite").
-- `/dev-flow:quality-suite`: runs the pre-merge chain end to end on the current branch, fixing as it goes: code-modularizer, `/simplify`, `/security-review` (when the change calls for it), `/code-review high --fix`, clean-code, then lint, typecheck and tests. Each step runs again while it keeps finding material issues (up to 3 passes), using subagents for fresh-eyes repeat passes and large diffs. All that's left is to commit and merge.
-- `clean-code` and `code-modularizer`: the guidance the other two use; also usable on their own.
+| Command | What it does | Who starts it |
+|---|---|---|
+| `/dev-flow:lets-do` | Plans a task with clean-code and modularity built in, plus a quality-suite gate | You only |
+| `/dev-flow:team-do` | Splits work into parallel workstreams and runs them with an agent team | You only |
+| `/dev-flow:quality-suite` | Runs the full pre-merge review chain on the branch, fixing as it goes | You, or Claude when you ask to get a change ready to merge |
+| `/dev-flow:clean-code` | Readability pass: naming, function size, comments, error handling | You, or Claude when relevant |
+| `/dev-flow:code-modularizer` | Splits large or mixed-purpose files into small, focused modules | You, or Claude when relevant |
 
-`/simplify`, `/code-review` and `/security-review` are built into Claude Code.
+The short forms (`/lets-do`, `/team-do`, ...) usually work too, unless another skill has the same name. `/simplify`, `/code-review` and `/security-review`, which quality-suite runs, are built into Claude Code.
 
-The short forms `/lets-do` and `/quality-suite` usually work too, unless another skill has the same name.
+A typical change: `/dev-flow:lets-do` to plan it, implement the plan, `/dev-flow:quality-suite` to polish it, then commit and merge. For work that splits into independent pieces, `/dev-flow:team-do` does all of that in parallel.
+
+## lets-do
+
+Plans the task the way you'd want it built. Before designing anything, Claude reads the clean-code and code-modularizer skills. The plan then names each file, the one concept it holds and its rough size, names the main functions and types, and carries the clean-code and modularity decisions into every step. It ends with a quality-suite pass as the quality gate.
+
+```
+/dev-flow:lets-do add CSV export to the reports page
+/dev-flow:lets-do implement docs/specs/webhooks.md
+/dev-flow:lets-do fix the race in the session token refresh
+/dev-flow:lets-do split src/billing/invoice.ts by concern, no quality-suite
+/dev-flow:lets-do add rate limiting to the public API; ignore code-modularizer
+```
+
+- Anything in the task overrides the defaults: "ignore code-modularizer", "skip clean-code", "no quality-suite".
+- The project's CLAUDE.md wins over the generic advice (file-size limits, layering, naming).
+- With no task, it asks what to do.
+
+## team-do
+
+Runs a piece of work as an [agent team](https://code.claude.com/docs/en/agent-teams), with your session as the lead:
+
+1. The lead finds the work (your task, a plan file, or the plan already in the conversation) and splits it into **workstreams**. Each workstream owns its files and can be built without waiting on another one's unfinished code. Work that others depend on goes in an earlier wave.
+2. It writes down the contracts where workstreams meet, sizes the team, and shows you the breakdown before spawning anyone.
+3. Each workstream gets a **planner** teammate (Opus, high effort). The planner follows lets-do for its workstream and gives the plan a second correctness pass. The lead then reviews all the plans together for consistency across workstreams.
+4. Each workstream then gets an **implementer** teammate (medium effort). The implementer builds the plan in its own worktree, runs quality-suite on it and commits on its own branch.
+5. The lead merges the branches in dependency order, runs lint, typecheck and tests, cleans up the worktrees and reports. Pushing and opening a PR are left to you.
+
+```
+/dev-flow:team-do implement the plan above
+/dev-flow:team-do docs/plans/billing.md
+/dev-flow:team-do docs/plans/billing.md, 4 teammates
+/dev-flow:team-do one workstream per module in the plan
+/dev-flow:team-do add audit logging: frontend / backend / tests as workstreams, 3 teammates
+/dev-flow:team-do the plan above; Sonnet for implementation, just go
+/dev-flow:team-do the plan above, no worktrees, leave the branches unmerged
+```
+
+The argument is free text: the work plus any options, in plain words.
+
+- **Team size**: "N teammates" caps how many workstreams run at once (each runs a planner, then an implementer). Without it, the lead runs every parallel workstream at once, up to 5, and runs the rest in waves. If only one workstream can run at a time, it says a team isn't worth it and points you to lets-do.
+- **Workstreams**: name them ("one per module", "frontend / backend / tests") and the lead uses yours instead of its own split.
+- **Models**: name one per role ("Sonnet for implementation", "Opus for everything").
+- **Effort** comes from the agent definitions in `agents/` and can't be changed per run. It applies to in-process teammates only; split-pane teammates use the lead's effort.
+- **"just go"** skips the confirmation. **"no worktrees"** keeps everyone in one checkout, on their own files. **"leave the branches unmerged"** stops before integration and lists the branches.
+
+Requirements and tips:
+
+- Agent teams are experimental: set `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` (shell or settings.json `env`) and run Claude Code interactively. Without it, team-do stops and tells you.
+- Workstreams branch from your current commit, so commit anything they depend on first. On the default branch, the lead creates a `team/...` branch to integrate on.
+- Teammate permission prompts show up in the lead's session: pre-approve common commands (tests, git worktree, your build tool) before a long run.
+- A team costs many times the tokens of one session; use it for work that genuinely splits.
+
+## quality-suite
+
+Runs the pre-merge chain on the current branch's changes, end to end, without stopping between steps. The steps, in order:
+
+1. code-modularizer
+2. `/simplify`
+3. `/security-review`, only when the diff touches auth, untrusted input, shell, SQL, network or dependencies
+4. `/code-review high --fix`
+5. clean-code
+6. lint, typecheck and tests
+
+Each step runs again while it keeps finding material issues, up to 3 passes, with fresh subagents for repeat passes and large diffs. When it hands back, only commit and merge are left.
+
+```
+/dev-flow:quality-suite
+/dev-flow:quality-suite only the last commit
+/dev-flow:quality-suite against develop
+/dev-flow:quality-suite what landed in a1b2c3d
+```
+
+Or just ask:
+
+```
+run the quality suite
+polish this branch
+get this ready to merge
+```
+
+- The scope defaults to everything on the branch since it left the base branch: commits, staged and unstaged changes, and new files.
+- Running it on a commit that's already merged reviews just that change, and puts the fixes on a new short-lived branch.
+- It asks you only for decisions that are genuinely yours, such as a change to public API or two designs with real trade-offs. Everything else it fixes.
+- The report starts with `COMPLETE` or `INCOMPLETE`. It never commits, pushes or merges.
+
+## clean-code and code-modularizer
+
+The guidance lets-do and quality-suite build on. Both also work on their own, and Claude can pick them up when relevant.
+
+```
+/dev-flow:clean-code src/api/handlers/orders.ts
+/dev-flow:clean-code review my uncommitted changes for readability
+/dev-flow:code-modularizer src/components/Dashboard.tsx
+/dev-flow:code-modularizer where should the new notifications code live?
+```
+
+```
+this file is getting hard to manage, split it up
+make this function readable
+```
+
+code-modularizer targets 100-200 lines per file and splits before about 300. Both defer to limits and conventions in your CLAUDE.md.
+
+## The team-do agents
+
+team-do spawns two agents that ship in `agents/`: `dev-flow:workstream-planner` and `dev-flow:workstream-implementer`. They're written as teammates. Each expects a brief from a lead (goal, owned files, contracts, base commit, paths) and reports back to that lead. You can still use them directly as subagents if you give them that brief yourself:
+
+```
+use the dev-flow:workstream-planner agent to plan the export module: it owns src/export/,
+must not touch src/reports/, base commit HEAD, lets-do skill at <path>/skills/lets-do/SKILL.md,
+write the plan to /tmp/export-plan.md
+```
+
+For planning in your own session, lets-do is usually the better fit. The planner is lets-do run for one workstream of a larger split, on Opus at high effort, without talking to you, and with the second correctness pass required. The implementer has no skill counterpart: it builds an approved plan in its own worktree, runs quality-suite and commits on its branch.
 
 ## Install
 
