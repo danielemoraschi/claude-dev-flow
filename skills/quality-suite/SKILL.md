@@ -1,19 +1,19 @@
 ---
 name: quality-suite
-description: Runs the full pre-merge quality chain on the current branch's changes end to end without stopping, so only commit and merge are left - in order dev-flow:code-modularizer, /simplify, optional /security-review, /code-review high --fix (with a second pass when warranted), then dev-flow:clean-code. Use whenever the user says "run the full suite", "run the quality suite", "full review chain", "run all the checks before merge", "polish this branch", or asks to get a change ready to merge, even if they don't name the individual skills.
+description: Runs the full pre-merge quality chain on the current branch's changes end to end without stopping, so only commit and merge are left - in order dev-flow:code-modularizer, /simplify, optional /security-review, /code-review high --fix (with a second pass when warranted), dev-flow:clean-code, then lint, typecheck and tests. Use whenever the user says "run the full suite", "run the quality suite", "full review chain", "run all the checks before merge", "polish this branch", or asks to get a change ready to merge, even if they don't name the individual skills.
 ---
 
 # Quality suite
 
-Run a fixed chain of review skills over the changes on the current branch, fixing as you go, so the change is ready to merge. Each step works on what the previous step left behind, which is why the order matters: structure first (modularize), then cleanup (simplify), then bug hunting on the cleaned code (review), then a final readability pass (clean code).
+Run a fixed chain of review skills over the changes on the current branch, fixing as you go, so the change is ready to merge. Each step works on what the previous step left behind, which is why the order matters: structure first (modularize), then cleanup (simplify), then security and bug hunting on the cleaned code (security review, code review), then a final readability pass (clean code), then lint, typecheck and tests to prove nothing broke (verify).
 
 ## Run it end to end, in one go
 
-The user calls `/quality-suite` and walks away. When you hand control back, every step (0–6) has run and the only thing left for them is to commit and merge. Handing back early is the failure this skill exists to prevent: the user reads "done-ish", commits, merges, and the remaining review steps never happen.
+The user calls `/dev-flow:quality-suite` and walks away. When you hand control back, every step (0–6) has run and the only thing left for them is to commit and merge. Handing back early is the failure this skill exists to prevent: the user reads "done-ish", commits, merges, and the remaining review steps never happen.
 
 - **Create one todo per step (0–6) at the start** and tick them off as you go. Before you end your turn, look at the list: if anything is unticked and not deliberately skipped (with a reason), you're not done; keep going.
 - **Don't end your turn between steps.** Each skill in the chain ends with its own summary or report. That summary is intermediate: note what it changed, then immediately invoke the next step in the same turn. Don't show it to the user as a stopping point.
-- **Don't ask permission between steps or for fixes.** Applying the fixes is the point of the run. Where a sub-skill would normally propose changes and wait for approval (e.g. code-modularizer, clean-code), apply the ones that are clearly right and list any you deliberately left out in the final report.
+- **Don't ask permission between steps or for fixes.** Applying the fixes is the point of the run. Where a sub-skill would normally ask before applying a change, apply the ones that are clearly right and list any you deliberately left out in the final report.
 - **Fix what breaks along the way.** If a step's fixes fail lint, typecheck or tests, fix them before moving on. Side issues you notice (a lint rule, a missing test for a fix you made) are part of the run, not reasons to stop.
 - **Ask when the decision is genuinely the user's.** Some findings can't be settled from the code, the project docs or a sensible default: a fix that would change public API or behavior the project has frozen, two valid designs with real trade-offs, unclear intent behind the code, or a failure you can't diagnose. Ask then (with the AskUserQuestion tool if available, giving your recommendation), naming the step you're on and the steps still to run. When they answer, apply it and carry on to the end of the chain in the same turn. Don't ask about things with an obvious right answer; fix those.
 
@@ -27,8 +27,8 @@ Work out which diff the suite covers before running anything:
 
 - If the user names a scope (a commit, a commit range, or "what landed in X"), use that. This also covers running the chain after the fact on work that already merged: e.g. `git diff <sha>^ <sha>`, and land fixes as a follow-up on a new short-lived branch.
 - Otherwise find the base: the branch the project merges into (check the project's CLAUDE.md, e.g. `next`, otherwise `main`/`master`). Use `git merge-base HEAD <base>`.
-- The scope is the committed branch diff plus uncommitted and staged changes.
-- Record the size: `git diff --stat <merge-base>` (files changed, lines added/removed). You need it for the review-pass decision in step 4.
+- The scope is the committed branch diff plus uncommitted and staged changes, plus new untracked files (`git ls-files --others --exclude-standard`), which `git diff` doesn't show.
+- Record the size: `git diff --stat <merge-base>` (files changed, lines added/removed), adding the untracked files to the count.
 - Keep every step on this scope. Some skills review only the uncommitted diff by default, so when the scope includes commits, pass it to each step explicitly (the base branch or commit range, or the changed paths, in whatever form that skill's arguments take).
 
 If the diff is empty, say so and stop. If the diff is documentation-only and the project's CLAUDE.md says doc-only changes skip the chain, say so and stop.
@@ -58,7 +58,7 @@ Skip it for pure refactors, internal logic, tests, styling and docs, and say in 
 Invoke `code-review` with args `high --fix`. Then decide whether a second pass is needed. Run a second pass (`high --fix` again, on the now-current diff) when either holds:
 
 - the first pass reported many findings (roughly 5 or more), or applied fixes that changed a meaningful amount of code, since fixes can introduce new bugs;
-- the diff is large (roughly 500+ changed lines or 15+ files), where one pass is unlikely to have covered everything.
+- the diff is large (roughly 500+ changed lines or 15+ files, measured now as in step 0, since steps 1 and 2 may have changed it), where one pass is unlikely to have covered everything.
 
 A small diff with few or no findings needs only one pass. Stop after the second pass; if it still turns up correctness issues, list them in the report rather than looping.
 

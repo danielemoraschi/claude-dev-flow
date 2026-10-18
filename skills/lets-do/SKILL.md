@@ -31,7 +31,7 @@ Where the project's CLAUDE.md sets its own rules (file-size limits, layering, na
 
 ## Quality gate
 
-Add a `/dev-flow:quality-suite` pass to the plan's quality gates, to run on the finished change before it's committed and merged. This one is a gate to run, not guidance to embed.
+Add a `/dev-flow:quality-suite` pass to the plan's quality gates (add a quality-gates section if the plan has none), to run on the finished change before it's committed and merged. This one is a gate to run, not guidance to embed.
 
 ## Overrides
 
