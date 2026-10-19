@@ -21,13 +21,16 @@ Read the files directly, as guidance; don't invoke them as skills or run their w
 
 ## Build the plan with them embedded
 
-Their content should shape the plan itself, not show up as a line saying "follow clean-code" or "apply code-modularizer". A plan that just names them hasn't applied them. Make it concrete:
+Their content should shape the plan itself, not show up as a line saying "follow clean-code" or "apply code-modularizer". A plan that just names them hasn't applied them. Give the plan this shape, so the decisions are visible in it and a missing one shows:
 
-- **Files and modules**: the plan names each new or changed file, the one concept it holds, and roughly how big it will get; where an existing file would grow past the modularizer's limits, the plan splits it as part of the work, not afterwards.
-- **Functions and names**: the main functions and types are named intention-revealingly in the plan, each doing one thing, with boundaries drawn where clean-code would draw them.
-- **Each implementation step** carries the specific clean-code and modularity decisions for that step (what goes where, what gets extracted, what stays small), so they're built in as the code is written.
+- **File map**, before the steps: every new or changed file, with the one concept it holds, its current size (measure existing files with `wc -l`, don't guess) and its expected size after the change. Any file that would pass the modularizer's limits gets split as a step of this plan, not afterwards.
+- **Each implementation step** says, besides what it does:
+  - *Structure*: which files it creates or changes, and what it extracts or keeps out of each one.
+  - *Code*: the functions and types it adds or changes, named intention-revealingly, each doing one thing, with few arguments and no boolean flags or hidden side effects.
+  - *Errors*: how the step's failure cases are handled and where, in the project's idiom.
+  - *Tests*: the tests that prove the step, named for the behavior they check.
 
-Where the project's CLAUDE.md sets its own rules (file-size limits, layering, naming), those win over the skills' generic advice.
+A step whose structure or code line is vague ("clean up as needed", "helpers", "a utils file") isn't planned yet. Where the project's CLAUDE.md sets its own rules (file-size limits, layering, naming), those win over the skills' generic advice.
 
 ## Quality gate
 

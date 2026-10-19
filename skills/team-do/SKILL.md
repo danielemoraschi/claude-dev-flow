@@ -1,6 +1,6 @@
 ---
 name: team-do
-description: Split a piece of work into parallel workstreams and run them with an agent team - you lead and coordinate; each workstream is planned by a teammate on Opus at high effort using lets-do, given a second correctness pass, then implemented by a teammate at medium effort in its own worktree and validated with quality-suite. Works out the workstreams and team size from the task or the plan already in the conversation. Invoked as /dev-flow:team-do followed by the task or a pointer to the plan; anything the user says in the task overrides these defaults.
+description: Split a piece of work into parallel workstreams and run them with an agent team - you lead and coordinate; each workstream is planned by a teammate on Opus at high effort using lets-do, given a second correctness pass and an independent adversarial review, then implemented by a teammate at medium effort in its own worktree and validated with quality-suite. Works out the workstreams and team size from the task or the plan already in the conversation. Invoked as /dev-flow:team-do followed by the task or a pointer to the plan; anything the user says in the task overrides these defaults.
 disable-model-invocation: true
 argument-hint: "[task, plan path, or 'the plan above'] [options in plain words, e.g. 4 teammates]"
 ---
@@ -17,6 +17,7 @@ The task is free text. Besides the work itself, it can set any of these in plain
 - **The workstreams**: if the task names them ("one per module in the plan", "frontend / backend / tests"), use those instead of drawing your own, still checking file ownership and contracts as in step 2.
 - **Models**: "Sonnet for implementation" and similar. Name the model in the spawn prompt; that wins over the agent definition's model.
 - **Effort** can't be changed per run: it comes from the agent definitions and is fixed at spawn. If the task asks for a different effort, say so in the confirmation.
+- **No plan review** ("no plan review", "skip the reviewer"): planners report straight to you after their second pass, with no reviewer teammate.
 - **Skip the confirmation** ("just go", "no confirmation"), **no worktrees** (implementers work in this checkout, on their own files only), or **leave the branches unmerged** (step 5's integrate becomes a report of the branches to merge).
 
 You are the team lead. You find the workstreams, size the team, brief and review the teammates, and integrate their work. You don't implement workstreams yourself: wait for your teammates.
@@ -44,7 +45,7 @@ A workstream is a self-contained unit with a clear deliverable that one teammate
 
 ## 3. Size the team
 
-- Each workstream has one teammate at a time: its planner, then its implementer. So the team size is the number of workstreams running at once.
+- The team size is the number of workstreams running at once. Each workstream has one teammate at a time (its planner, then its implementer), plus a reviewer while its plan is under review, so planning briefly peaks at two teammates per workstream.
 - Unless the task sets it, run every parallel workstream of a wave at once, up to 5 (the docs' 3-5 sweet spot: more adds coordination and tokens faster than speed). With more workstreams than that, run them in waves of 5.
 - If no wave has two or more workstreams, a team adds cost without speed. Say so and suggest `/dev-flow:lets-do` instead, then stop.
 
@@ -63,9 +64,15 @@ Spawn one teammate per workstream with the `dev-flow:workstream-planner` agent t
 - the workstream: goal, scope, owned files, files it must not touch, and why the workstream exists
 - the contracts with other workstreams, word for word, and which teammate owns each other workstream
 - the base commit, and the path of the plan file to write in the plans directory
-- the absolute path of the lets-do skill file: `../lets-do/SKILL.md` from this skill's base directory, resolved
+- the plugin's skills directory, as an absolute path: the parent of this skill's base directory, resolved (it holds `lets-do/`, `clean-code/` and `code-modularizer/`)
 
-When a planner reports back, don't approve on its word. Once every plan in the wave is in, review them together: contracts match on both sides, no file appears in two workstreams, nothing falls between workstreams, steps are small and testable, and the plans embed clean-code and modularity decisions rather than just naming them. Send corrections to the planner that owns them and wait for the revision. Then ask the planners to shut down.
+### Review each plan
+
+When a planner says its plan is ready for review, spawn a `dev-flow:workstream-plan-reviewer` teammate for it, named `review-<workstream>`. Give it the same brief and skills directory as the planner, the plan file path, and the planner's name. Don't pass it your own opinion of the plan or the planner's reasoning: it reviews independently. The reviewer and planner work through the findings directly, in at most two rounds, and the reviewer sends you a verdict: approved, or disputed with the open blocking findings and both positions. Decide each disputed finding yourself, or ask the user when it's genuinely theirs, and tell the planner. Then ask the reviewer to shut down.
+
+### Review across workstreams
+
+Once every plan in the wave is reviewed and its planner has reported, review the plans together, for what no single reviewer could see: contracts match on both sides, no file appears in two workstreams, and nothing falls between workstreams. Spot-check that each plan has the lets-do shape (a measured file map; structure, code, errors and tests in every step). Send corrections to the planner that owns them and wait for the revision. Then ask the planners to shut down.
 
 ### Implement
 
@@ -96,7 +103,7 @@ When every workstream in the wave has reported a committed, quality-suite-clean 
 
 End with a short summary. Its first line is the status: "COMPLETE, merged into <branch>, ready to review and push", or "INCOMPLETE" with what's pending and the blocker.
 
-- waves and workstreams, with the teammates that planned and built each
-- per workstream: plan file, quality-suite status, commits merged
+- waves and workstreams, with the teammates that planned, reviewed and built each
+- per workstream: plan file, review verdict and how disputes were settled, quality-suite status, commits merged
 - integration: conflicts resolved, fixes made, lint/typecheck/test results
 - anything left unfixed, and any worktree or branch left behind
