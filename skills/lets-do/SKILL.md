@@ -10,19 +10,27 @@ The task: $ARGUMENTS
 
 If no task is given, ask what to do before anything else.
 
-## Before planning: read the two skills
+## First: read the two skills, every time
 
-Read these in full before you design anything. They ship in this plugin, next to this skill: from this skill's base directory, they are
+Your first tool calls, before reading any project code, read these two files in full:
 
-- `../clean-code/SKILL.md`
-- `../code-modularizer/SKILL.md`
+- `${CLAUDE_SKILL_DIR}/../clean-code/SKILL.md`
+- `${CLAUDE_SKILL_DIR}/../code-modularizer/SKILL.md`
 
-Read the files directly, as guidance; don't invoke them as skills or run their workflows on the existing code.
+Do this on every run, even if you read them earlier in this conversation: earlier reads may have been compacted into a summary, and a summary isn't the guidance. Read them as guidance; don't invoke them as skills or run their workflows on the existing code.
+
+Then say in one line that you read them, with each file's line count, so the user can see it happened. If a file can't be read, stop and say so instead of planning without it.
 
 ## Build the plan with them embedded
 
-Their content should shape the plan itself, not show up as a line saying "follow clean-code" or "apply code-modularizer". A plan that just names them hasn't applied them. Give the plan this shape, so the decisions are visible in it and a missing one shows:
+Their content should shape the plan itself, and the plan should show where it did. A line saying "follow clean-code" or "apply code-modularizer" applies nothing; a plan that's merely tidy doesn't show the skills were used either. Give the plan this shape, so the decisions are visible in it and a missing one shows:
 
+- **Design decisions**, near the top: the clean-code and modularity decisions this plan makes, one per line, each with the rule it applies (from the skill, in a few words) and the step where it lands. For example:
+  - *`options.ts` split out of `map.ts`, so `map.ts` stays composition only*: code-modularizer, one concept per file. Step 2.
+  - *`checkAttachable` renamed `resolveAttachable`, since it now returns the element*: clean-code, a name says what it does. Step 1.
+  - *Invalid options throw `invalid-input` at the boundary, not a `TypeError` deep inside*: clean-code, handle errors in one clear place, with context. Step 2.
+
+  Cover every file the change creates or grows, the main new functions and types, and the error handling. A decision listed here with no step carrying it, or a step making a structural choice not listed here, means the plan isn't finished.
 - **File map**, before the steps: every new or changed file, with the one concept it holds, its current size (measure existing files with `wc -l`, don't guess) and its expected size after the change. Any file that would pass the modularizer's limits gets split as a step of this plan, not afterwards.
 - **Each implementation step** says, besides what it does:
   - *Structure*: which files it creates or changes, and what it extracts or keeps out of each one.

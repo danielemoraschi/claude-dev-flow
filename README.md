@@ -16,8 +16,9 @@ A typical change: `/dev-flow:lets-do` to plan it, implement the plan, `/dev-flow
 
 ## lets-do
 
-Plans the task the way you'd want it built. Before designing anything, Claude reads the clean-code and code-modularizer skills. The plan then has a fixed shape, so the decisions are visible and a missing one stands out:
+Plans the task the way you'd want it built. Before designing anything, Claude reads the clean-code and code-modularizer skills, on every run, and says so with their line counts. The plan then has a fixed shape, so the decisions are visible and a missing one stands out:
 
+- **design decisions**: each clean-code and modularity decision, the rule it applies and the step it lands in, so you can see where the skills shaped the plan;
 - a **file map**: every new or changed file, the one concept it holds, its measured current size and its expected size, with any file that would grow too big split as part of the plan;
 - in **every step**: *structure* (files touched, what gets extracted), *code* (the functions and types, each named for one job), *errors* (how failures are handled and where) and *tests* (named for the behavior they prove).
 

@@ -72,7 +72,7 @@ When a planner says its plan is ready for review, spawn a `dev-flow:workstream-p
 
 ### Review across workstreams
 
-Once every plan in the wave is reviewed and its planner has reported, review the plans together, for what no single reviewer could see: contracts match on both sides, no file appears in two workstreams, and nothing falls between workstreams. Spot-check that each plan has the lets-do shape (a measured file map; structure, code, errors and tests in every step). Send corrections to the planner that owns them and wait for the revision. Then ask the planners to shut down.
+Once every plan in the wave is reviewed and its planner has reported, review the plans together, for what no single reviewer could see: contracts match on both sides, no file appears in two workstreams, and nothing falls between workstreams. Spot-check that each plan has the lets-do shape: design decisions tied to clean-code and code-modularizer rules and carried by the steps, a measured file map, and structure, code, errors and tests in every step. Send corrections to the planner that owns them and wait for the revision. Then ask the planners to shut down.
 
 ### Implement
 
