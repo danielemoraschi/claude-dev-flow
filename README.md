@@ -14,15 +14,6 @@ The short forms (`/lets-do`, `/team-do`, ...) usually work too, unless another s
 
 A typical change: `/dev-flow:lets-do` to plan it, implement the plan, `/dev-flow:quality-suite` to polish it, then commit and merge. For work that splits into independent pieces, `/dev-flow:team-do` does all of that in parallel.
 
-```mermaid
-flowchart TD
-    T["your task"] --> L["lets-do<br/>reads clean-code + code-modularizer"]
-    L --> P["plan<br/>design decisions, file map, steps"]
-    P --> I["you implement"]
-    I --> Q["quality-suite"]
-    Q --> M["you commit and merge"]
-```
-
 ## Install
 
 In Claude Code:
@@ -65,20 +56,7 @@ Runs a piece of work as an [agent team](https://code.claude.com/docs/en/agent-te
 3. Each workstream gets a **planner** teammate (Opus, high effort). The planner follows lets-do for its workstream and gives the plan a second correctness pass.
 4. A **reviewer** teammate (Opus, high effort) then attacks each plan independently: wrong assumptions about the code, missed edge cases, contract breaks, vague structure or names, over-engineering. It works through graded findings with the planner in at most two rounds, and the lead settles anything still disputed. The lead then reviews all the plans together for consistency across workstreams.
 5. Each workstream then gets an **implementer** teammate (medium effort). The implementer builds the plan in its own worktree, runs quality-suite on it and commits on its own branch.
-6. The lead merges the branches in dependency order, runs lint, typecheck and tests, cleans up the worktrees and reports. Pushing and opening a PR are left to you.
-
-```mermaid
-flowchart TD
-    T["task or plan"] --> L["lead<br/>your session"]
-    L -->|"one per workstream, in parallel"| P["planner<br/>opus, high"]
-    P --> R["plan reviewer<br/>opus, high"]
-    R -->|"changes, max 2 rounds"| P
-    R -->|"approved"| X["lead<br/>checks plans fit together"]
-    X --> I["implementer<br/>medium, own worktree"]
-    I --> Q["quality-suite"]
-    Q --> M["lead<br/>merges, runs the tests"]
-    M --> Y["you review and push"]
-```
+6. The lead checks each branch against its plan (file map, design decisions, contracts), merges the approved ones in dependency order and runs lint, typecheck and tests. A workstream that can't be settled stays on its branch as **needs-human**, with the decision you need to make; the rest still merge. Pushing and opening a PR are left to you.
 
 ```
 /dev-flow:team-do implement the plan above
@@ -98,7 +76,7 @@ The argument is free text: the work plus any options, in plain words.
 - **Models**: name one per role ("Sonnet for implementation", "Opus for everything").
 - **Effort** comes from the agent definitions in `agents/` and can't be changed per run. It applies to in-process teammates only; split-pane teammates use the lead's effort.
 - **"no plan review"** drops the reviewer; plans go straight to the lead after the planner's second pass.
-- **"just go"** skips the confirmation. **"no worktrees"** keeps everyone in one checkout, on their own files. **"leave the branches unmerged"** stops before integration and lists the branches.
+- **"just go"** skips the confirmation. **"no worktrees"** keeps everyone in one checkout, on their own files. **"leave the branches unmerged"** still checks and approves each workstream, then lists the branches instead of merging them.
 
 Requirements and tips:
 
@@ -117,17 +95,6 @@ Runs the pre-merge chain on the current branch's changes, end to end, without st
 4. `/code-review high --fix`
 5. clean-code
 6. lint, typecheck and tests
-
-```mermaid
-flowchart TD
-    S["scope<br/>the branch's changes"] --> A["code-modularizer"]
-    A --> B["/simplify"]
-    B --> C["/security-review<br/>only if the diff needs it"]
-    C --> E["/code-review high --fix"]
-    E --> F["clean-code"]
-    F --> V["lint, typecheck, tests"]
-    V --> R["COMPLETE or INCOMPLETE"]
-```
 
 Each step runs again while it keeps finding material issues, up to 3 passes, with fresh subagents for repeat passes and large diffs. When it hands back, only commit and merge are left.
 

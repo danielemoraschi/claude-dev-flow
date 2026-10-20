@@ -18,7 +18,7 @@ The task is free text. Besides the work itself, it can set any of these in plain
 - **Models**: "Sonnet for implementation" and similar. Name the model in the spawn prompt; that wins over the agent definition's model.
 - **Effort** can't be changed per run: it comes from the agent definitions and is fixed at spawn. If the task asks for a different effort, say so in the confirmation.
 - **No plan review** ("no plan review", "skip the reviewer"): planners report straight to you after their second pass, with no reviewer teammate.
-- **Skip the confirmation** ("just go", "no confirmation"), **no worktrees** (implementers work in this checkout, on their own files only), or **leave the branches unmerged** (step 5's integrate becomes a report of the branches to merge).
+- **Skip the confirmation** ("just go", "no confirmation"), **no worktrees** (implementers work in this checkout, on their own files only), or **leave the branches unmerged** (step 5's integrate still checks and decides each workstream, then lists the approved branches instead of merging them).
 
 You are the team lead. You find the workstreams, size the team, brief and review the teammates, and integrate their work. You don't implement workstreams yourself: wait for your teammates.
 
@@ -86,24 +86,33 @@ While they work, answer their questions. When a teammate needs a decision that i
 
 ### Integrate
 
-When every workstream in the wave has reported a committed, quality-suite-clean branch:
+When every implementer in the wave has reported, decide each workstream:
 
-1. Merge the workstream branches into your branch in dependency order (`git merge --no-ff team/<workstream>`). Conflicts should be rare if ownership held; resolve them, or send them back to the workstream's implementer if they're more than mechanical.
-2. Run the project's lint, typecheck and test commands on the merged result. Fix integration breakage, or send it to the workstream that owns the code.
-3. Start the next wave from the new `HEAD`.
+1. **Check it against its plan.** Compare the branch's diff (`git diff <base commit>...team/<workstream>`) with the approved plan: every file in the file map and only those, each design decision carried out where the plan put it, and the contracts with other workstreams exactly as briefed. Send gaps back to the implementer, which is still running, for one round of fixes, then check again.
+2. **Approve or escalate.**
+   - **APPROVED**: quality-suite ended COMPLETE and the plan check passes.
+   - **NEEDS-HUMAN**: quality-suite ended INCOMPLETE, the plan check still fails after the round of fixes, or the workstream raised a decision that's genuinely the user's. Leave its branch unmerged and keep its worktree.
+   - A workstream in a later wave that depends on a NEEDS-HUMAN one is held too, as NEEDS-HUMAN (blocked by it). Everything else carries on.
+
+Then, for the approved workstreams:
+
+3. Merge their branches into your branch in dependency order (`git merge --no-ff team/<workstream>`). Conflicts should be rare if ownership held; resolve them, or send them back to the workstream's implementer if they're more than mechanical.
+4. Run the project's lint, typecheck and test commands on the merged result. Fix integration breakage, or send it to the workstream that owns the code.
+5. Start the next wave from the new `HEAD`, without the held workstreams.
 
 ## 6. Finish
 
 - If you wrote integration fixes yourself, run `/dev-flow:quality-suite` scoped to those fixes.
 - Ask every remaining teammate to shut down.
-- Remove each merged workstream's worktree (`git worktree remove`) and branch (`git branch -d`). Both refuse when work would be lost; if one refuses, leave it and say so.
+- Remove each merged workstream's worktree (`git worktree remove`) and branch (`git branch -d`). Both refuse when work would be lost; if one refuses, leave it and say so. Leave NEEDS-HUMAN workstreams' worktrees and branches in place for the user.
 - Don't push or open a pull request; that's the user's part.
 
 ## Report
 
-End with a short summary. Its first line is the status: "COMPLETE, merged into <branch>, ready to review and push", or "INCOMPLETE" with what's pending and the blocker.
+End with a short summary. Its first line is the status: "COMPLETE, merged into <branch>, ready to review and push", "PARTIAL: N of M merged, K need you", or "INCOMPLETE" with the blocker when the run couldn't start or merged nothing.
 
+- **needs you**, first: per NEEDS-HUMAN workstream, its branch and worktree, why it was held, the open findings, and the decision to make, with your recommendation
 - waves and workstreams, with the teammates that planned, reviewed and built each
-- per workstream: plan file, review verdict and how disputes were settled, quality-suite status, commits merged
+- per workstream: APPROVED or NEEDS-HUMAN, plan file, review verdict and how disputes were settled, quality-suite status, plan-check result, commits merged
 - integration: conflicts resolved, fixes made, lint/typecheck/test results
 - anything left unfixed, and any worktree or branch left behind
