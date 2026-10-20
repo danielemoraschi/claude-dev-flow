@@ -15,13 +15,12 @@ The short forms (`/lets-do`, `/team-do`, ...) usually work too, unless another s
 A typical change: `/dev-flow:lets-do` to plan it, implement the plan, `/dev-flow:quality-suite` to polish it, then commit and merge. For work that splits into independent pieces, `/dev-flow:team-do` does all of that in parallel.
 
 ```mermaid
-flowchart LR
-    T["Your task"] --> L["/dev-flow:lets-do"]
-    G["clean-code + code-modularizer"] -. "read on every run" .-> L
-    L --> P["Plan: design decisions, file map, steps"]
-    P --> I["You implement it"]
-    I --> Q["/dev-flow:quality-suite"]
-    Q --> M["You commit and merge"]
+flowchart TD
+    T["your task"] --> L["lets-do<br/>reads clean-code + code-modularizer"]
+    L --> P["plan<br/>design decisions, file map, steps"]
+    P --> I["you implement"]
+    I --> Q["quality-suite"]
+    Q --> M["you commit and merge"]
 ```
 
 ## Install
@@ -69,33 +68,16 @@ Runs a piece of work as an [agent team](https://code.claude.com/docs/en/agent-te
 6. The lead merges the branches in dependency order, runs lint, typecheck and tests, cleans up the worktrees and reports. Pushing and opening a PR are left to you.
 
 ```mermaid
-sequenceDiagram
-    actor You
-    participant Lead as Lead (your session)
-    participant P as Planner (Opus, high)
-    participant R as Reviewer (Opus, high)
-    participant I as Implementer (medium)
-    You->>Lead: /dev-flow:team-do task
-    Lead->>Lead: Split into workstreams, fix contracts
-    Lead->>You: Workstreams, team size, models
-    You->>Lead: Go ahead
-    loop For each workstream in the wave, in parallel
-        Lead->>P: Spawn with the brief
-        P->>P: Read the skills, plan with lets-do, second pass
-        P->>Lead: Plan ready for review
-        Lead->>R: Spawn with the brief and the plan
-        R->>P: Graded findings
-        P->>R: Fixed or disputed, finding by finding
-        R->>Lead: Verdict, approved or disputed
-    end
-    Lead->>Lead: Settle disputes, review plans across workstreams
-    loop For each workstream, in parallel
-        Lead->>I: Spawn with the approved plan
-        I->>I: Own worktree, implement, quality-suite
-        I->>Lead: Committed branch
-    end
-    Lead->>Lead: Merge in dependency order, lint, typecheck, tests
-    Lead->>You: Report, ready to review and push
+flowchart TD
+    T["task or plan"] --> L["lead<br/>your session"]
+    L -->|"one per workstream, in parallel"| P["planner<br/>opus, high"]
+    P --> R["plan reviewer<br/>opus, high"]
+    R -->|"changes, max 2 rounds"| P
+    R -->|"approved"| X["lead<br/>checks plans fit together"]
+    X --> I["implementer<br/>medium, own worktree"]
+    I --> Q["quality-suite"]
+    Q --> M["lead<br/>merges, runs the tests"]
+    M --> Y["you review and push"]
 ```
 
 ```
@@ -138,20 +120,13 @@ Runs the pre-merge chain on the current branch's changes, end to end, without st
 
 ```mermaid
 flowchart TD
-    S["Step 0: scope, meaning branch commits, staged and unstaged changes, new files"] --> A["Step 1: code-modularizer"]
-    A --> B["Step 2: /simplify"]
-    B --> D{"Diff touches auth, untrusted input, shell, SQL, network or dependencies?"}
-    D -- yes --> C["Step 3: /security-review"]
-    D -- no --> E
-    C --> E["Step 4: /code-review high --fix"]
-    E --> F["Step 5: clean-code"]
-    F --> V["Step 6: Lint, typecheck, tests"]
-    V --> Rp["Report: COMPLETE or INCOMPLETE"]
-    A -. "again, up to 3 passes" .-> A
-    B -. again .-> B
-    C -. again .-> C
-    E -. again .-> E
-    F -. again .-> F
+    S["scope<br/>the branch's changes"] --> A["code-modularizer"]
+    A --> B["/simplify"]
+    B --> C["/security-review<br/>only if the diff needs it"]
+    C --> E["/code-review high --fix"]
+    E --> F["clean-code"]
+    F --> V["lint, typecheck, tests"]
+    V --> R["COMPLETE or INCOMPLETE"]
 ```
 
 Each step runs again while it keeps finding material issues, up to 3 passes, with fresh subagents for repeat passes and large diffs. When it hands back, only commit and merge are left.
