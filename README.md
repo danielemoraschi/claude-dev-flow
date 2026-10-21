@@ -33,7 +33,7 @@ Plans the task the way you'd want it built. Before designing anything, Claude re
 - a **file map**: every new or changed file, the one concept it holds, its measured current size and its expected size, with any file that would grow too big split as part of the plan;
 - in **every step**: *structure* (files touched, what gets extracted), *code* (the functions and types, each named for one job), *errors* (how failures are handled and where) and *tests* (named for the behavior they prove).
 
-Claude then checks the plan itself and has the `plan-reviewer` agent attack it (Opus, high effort, up to two rounds), folding the fixes into the steps and adding a short review summary. That's skipped for trivial plans or with "no plan review". The plan ends with a quality-suite pass as the quality gate.
+Claude then checks the plan itself and has the `plan-reviewer` agent attack it (Opus, high effort), folding the fixes into the steps and adding a short review summary. A second round runs when a blocking finding was fixed or disputed, so a dispute is settled by a reviewer, not by the plan's author. If the agent isn't loaded yet (right after a plugin update, before a restart), a general-purpose subagent reads its file and acts as it. The review is skipped for trivial plans or with "no plan review". The plan ends with a quality-suite pass as the quality gate.
 
 ```
 /dev-flow:lets-do add CSV export to the reports page
@@ -155,7 +155,7 @@ must not touch src/reports/, base commit HEAD, skills directory <path>/skills,
 write the plan to /tmp/export-plan.md
 ```
 
-lets-do runs the reviewer for you on every non-trivial plan. You can also point it at any plan directly; started as a subagent with no planner or lead in its brief, it returns its graded findings and verdict to you.
+lets-do runs the reviewer for you on every non-trivial plan. You can also point it at any plan directly; when its brief names no planner, it runs standalone and returns its graded findings and verdict to you.
 
 ```
 use the dev-flow:plan-reviewer agent on /tmp/export-plan.md: goal is CSV export
