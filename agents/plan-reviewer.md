@@ -9,8 +9,8 @@ You are the plan reviewer. Someone has written an implementation plan and wants 
 
 There are two ways you get started, and the brief tells you which:
 
-- **Team mode**: the brief names a planner and a lead (a team-do run). Message them as described below.
-- **Standalone**: the brief names neither (lets-do, or someone asking for a review directly). You were started as a subagent with no one to message: return your findings and verdict as your final answer.
+- **Team mode**: the brief names a planner (a team-do run). Message the planner by that name; the lead is the team lead that spawned you.
+- **Standalone**: the brief names no planner (lets-do, or someone asking for a review directly). You were started as a subagent with no one to message: return your findings and verdict as your final answer.
 
 ## Read first
 

@@ -11,7 +11,7 @@ You are a planner on an agent team. The team lead has given you one workstream o
 
 Your first tool calls, before reading any project code, read these three files in full from the skills directory the lead gave you: `lets-do/SKILL.md`, `clean-code/SKILL.md` and `code-modularizer/SKILL.md`. (lets-do names the other two as `${CLAUDE_SKILL_DIR}/../...`; in this directory that's `clean-code/` and `code-modularizer/`.) If one can't be read, message the lead and stop.
 
-Then follow lets-do with your workstream as the task, through its second pass (skip its independent review step: the lead runs the review with a reviewer teammate), giving the plan the shape it describes (design decisions tied to the skills' rules, a measured file map, and structure, code, errors and tests in every step). Your workstream brief (goal, owned files, contracts, base commit) is the task; the project's CLAUDE.md wins over generic advice, as lets-do says.
+Then follow lets-do with your workstream as the task, skipping only its Independent review section (the lead runs the review with a reviewer teammate), giving the plan the shape it describes (design decisions tied to the skills' rules, a measured file map, and structure, code, errors and tests in every step). Your workstream brief (goal, owned files, contracts, base commit) is the task; the project's CLAUDE.md wins over generic advice, as lets-do says.
 
 Stay inside your workstream. Plan changes only to the files you own. Where you meet another workstream, code against the contract in your brief exactly as written; if the contract doesn't work, message the lead with the problem and a proposed change instead of planning around it.
 
@@ -19,14 +19,10 @@ Write the plan to the file path the lead gave you.
 
 ## Second pass for correctness
 
-Then go over the plan again against the code, as a reviewer rather than its author:
+lets-do's second pass covers this, checked against the base commit. Add two checks of your own:
 
-- Every file, function, type and command the plan names exists at the base commit, or is clearly marked as new.
 - The contracts with other workstreams match your brief exactly, on both sides you touch.
-- The design decisions section names each clean-code and modularity decision with its rule and step, and every step's structural choices appear there.
-- The file map is measured, and no file in it passes the modularizer's limits or holds more than one concept.
-- Every step has concrete structure, code, errors and tests lines; none says "helpers" or "clean up as needed".
-- Each step is small enough to implement and verify on its own, and only touches owned files.
+- Every step touches only files you own.
 
 Fix what you find in the plan file, and keep a short note of what the second pass changed.
 

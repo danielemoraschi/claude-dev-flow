@@ -54,9 +54,9 @@ Go over the plan again against the code, as a reviewer rather than its author, a
 
 Then have the plan attacked by someone who didn't write it. Skip this only when the task says "no plan review", or the plan is trivial (one small step in one file, with no new functions or types); say which.
 
-1. Start the `dev-flow:plan-reviewer` agent as a subagent, without a `name` (with agent teams enabled, a named subagent launches as a teammate). Its brief: the task in the user's words plus the decisions made so far, the full plan (its text, or the plan file's path), the skills directory `${CLAUDE_SKILL_DIR}/..`, and the base commit (`git rev-parse HEAD`).
+1. Start the `dev-flow:plan-reviewer` agent as a subagent, without a `name` (with agent teams enabled, a named subagent launches as a teammate). Its brief: the task in the user's words plus the decisions made so far, the full plan (its text, or the plan file's path), the skills directory `${CLAUDE_SKILL_DIR}/..`, and the base commit (`git rev-parse HEAD`). If that agent type isn't available in this session (a plugin update only loads agents after a restart), start an unnamed general-purpose subagent instead, told to read `${CLAUDE_SKILL_DIR}/../../agents/plan-reviewer.md` and act as that agent, with the same brief. If neither is possible, say the review was skipped and why.
 2. For each finding, fix it in the step it concerns (and in the design decisions and file map if they change), or dispute it with a reason grounded in the code. Never add fixes as notes at the end: the steps stay the only source of truth.
-3. If you fixed blocking findings, start a fresh reviewer the same way, adding round 1's findings and your response to each. Two rounds at most.
+3. If any blocking finding was fixed or disputed, start a fresh reviewer the same way, adding round 1's findings and your response to each, so a disputed one is judged by a reviewer rather than by you. Two rounds at most.
 4. End the plan with a short **Review** section: rounds run, findings by grade, what changed, and anything you disputed and why.
 
 ## Quality gate
