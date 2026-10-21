@@ -33,7 +33,7 @@ Plans the task the way you'd want it built. Before designing anything, Claude re
 - a **file map**: every new or changed file, the one concept it holds, its measured current size and its expected size, with any file that would grow too big split as part of the plan;
 - in **every step**: *structure* (files touched, what gets extracted), *code* (the functions and types, each named for one job), *errors* (how failures are handled and where) and *tests* (named for the behavior they prove).
 
-It ends with a quality-suite pass as the quality gate.
+Claude then checks the plan itself and has the `plan-reviewer` agent attack it (Opus, high effort, up to two rounds), folding the fixes into the steps and adding a short review summary. That's skipped for trivial plans or with "no plan review". The plan ends with a quality-suite pass as the quality gate.
 
 ```
 /dev-flow:lets-do add CSV export to the reports page
@@ -41,9 +41,10 @@ It ends with a quality-suite pass as the quality gate.
 /dev-flow:lets-do fix the race in the session token refresh
 /dev-flow:lets-do split src/billing/invoice.ts by concern, no quality-suite
 /dev-flow:lets-do add rate limiting to the public API; ignore code-modularizer
+/dev-flow:lets-do rename the config loader, no plan review
 ```
 
-- Anything in the task overrides the defaults: "ignore code-modularizer", "skip clean-code", "no quality-suite".
+- Anything in the task overrides the defaults: "ignore code-modularizer", "skip clean-code", "no quality-suite", "no plan review".
 - The project's CLAUDE.md wins over the generic advice (file-size limits, layering, naming).
 - With no task, it asks what to do.
 
@@ -136,17 +137,17 @@ make this function readable
 
 code-modularizer targets 100-200 lines per file and splits before about 300. Both defer to limits and conventions in your CLAUDE.md.
 
-## The team-do agents
+## The agents
 
-team-do spawns three agents that ship in `agents/`:
+dev-flow ships three agents in `agents/`:
 
 | Agent | Model, effort | Job |
 |---|---|---|
 | `dev-flow:workstream-planner` | Opus, high | Plans one workstream with lets-do, second correctness pass, answers the reviewer |
-| `dev-flow:workstream-plan-reviewer` | Opus, high | Attacks one plan independently and reports a verdict |
+| `dev-flow:plan-reviewer` | Opus, high | Attacks a plan independently and reports a verdict; used by lets-do and team-do |
 | `dev-flow:workstream-implementer` | lead's model, medium | Builds the approved plan in its own worktree, runs quality-suite, commits on its branch |
 
-They're written as teammates. Each expects a brief from a lead (goal, owned files, contracts, base commit, the plugin's skills directory, paths) and reports back to that lead. You can still use them directly as subagents if you give them that brief yourself:
+The planner and implementer are written as teammates for team-do. Each expects a brief from a lead (goal, owned files, contracts, base commit, the plugin's skills directory, paths) and reports back to that lead. You can still use them directly as subagents if you give them that brief yourself:
 
 ```
 use the dev-flow:workstream-planner agent to plan the export module: it owns src/export/,
@@ -154,10 +155,10 @@ must not touch src/reports/, base commit HEAD, skills directory <path>/skills,
 write the plan to /tmp/export-plan.md
 ```
 
-The reviewer is the most useful one on its own: point it at any plan, including one from lets-do, for an adversarial second opinion. Without a planner to talk to, it returns its graded findings to you.
+lets-do runs the reviewer for you on every non-trivial plan. You can also point it at any plan directly; started as a subagent with no planner or lead in its brief, it returns its graded findings and verdict to you.
 
 ```
-use the dev-flow:workstream-plan-reviewer agent on /tmp/export-plan.md: goal is CSV export
+use the dev-flow:plan-reviewer agent on /tmp/export-plan.md: goal is CSV export
 from the reports page, owns src/export/, base commit HEAD, skills directory <path>/skills
 ```
 

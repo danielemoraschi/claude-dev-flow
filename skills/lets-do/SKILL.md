@@ -40,10 +40,29 @@ Their content should shape the plan itself, and the plan should show where it di
 
 A step whose structure or code line is vague ("clean up as needed", "helpers", "a utils file") isn't planned yet. Where the project's CLAUDE.md sets its own rules (file-size limits, layering, naming), those win over the skills' generic advice.
 
+## Second pass
+
+Go over the plan again against the code, as a reviewer rather than its author, and fix what you find in place:
+
+- Every file, function, type and command the plan names exists, or is clearly marked as new.
+- The design decisions name each clean-code and modularity decision with its rule and step, and every step's structural choices appear there.
+- The file map is measured, and no file in it passes the modularizer's limits or holds more than one concept.
+- Every step has concrete structure, code, errors and tests lines.
+- Each step is small enough to implement and verify on its own.
+
+## Independent review
+
+Then have the plan attacked by someone who didn't write it. Skip this only when the task says "no plan review", or the plan is trivial (one small step in one file, with no new functions or types); say which.
+
+1. Start the `dev-flow:plan-reviewer` agent as a subagent, without a `name` (with agent teams enabled, a named subagent launches as a teammate). Its brief: the task in the user's words plus the decisions made so far, the full plan (its text, or the plan file's path), the skills directory `${CLAUDE_SKILL_DIR}/..`, and the base commit (`git rev-parse HEAD`).
+2. For each finding, fix it in the step it concerns (and in the design decisions and file map if they change), or dispute it with a reason grounded in the code. Never add fixes as notes at the end: the steps stay the only source of truth.
+3. If you fixed blocking findings, start a fresh reviewer the same way, adding round 1's findings and your response to each. Two rounds at most.
+4. End the plan with a short **Review** section: rounds run, findings by grade, what changed, and anything you disputed and why.
+
 ## Quality gate
 
 Add a `/dev-flow:quality-suite` pass to the plan's quality gates (add a quality-gates section if the plan has none), to run on the finished change before it's committed and merged. This one is a gate to run, not guidance to embed.
 
 ## Overrides
 
-The user's own words win. If the task says to drop or change any default (e.g. "ignore code-modularizer", "no quality-suite", "skip clean-code"), follow that instead.
+The user's own words win. If the task says to drop or change any default (e.g. "ignore code-modularizer", "no quality-suite", "skip clean-code", "no plan review"), follow that instead.

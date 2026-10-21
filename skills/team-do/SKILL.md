@@ -68,7 +68,7 @@ Spawn one teammate per workstream with the `dev-flow:workstream-planner` agent t
 
 ### Review each plan
 
-When a planner says its plan is ready for review, spawn a `dev-flow:workstream-plan-reviewer` teammate for it, named `review-<workstream>`. Give it the same brief and skills directory as the planner, the plan file path, and the planner's name. Don't pass it your own opinion of the plan or the planner's reasoning: it reviews independently. The reviewer and planner work through the findings directly, in at most two rounds, and the reviewer sends you a verdict: approved, or disputed with the open blocking findings and both positions. Decide each disputed finding yourself, or ask the user when it's genuinely theirs, and tell the planner. Then ask the reviewer to shut down.
+When a planner says its plan is ready for review, spawn a `dev-flow:plan-reviewer` teammate for it, named `review-<workstream>`. Give it the same brief and skills directory as the planner, the plan file path, and the planner's name. Don't pass it your own opinion of the plan or the planner's reasoning: it reviews independently. The reviewer and planner work through the findings directly, in at most two rounds, and the reviewer sends you a verdict: approved, or disputed with the open blocking findings and both positions. Decide each disputed finding yourself, or ask the user when it's genuinely theirs, and tell the planner. Then ask the reviewer to shut down.
 
 ### Review across workstreams
 
