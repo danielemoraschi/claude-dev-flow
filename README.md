@@ -82,6 +82,7 @@ The argument is free text: the work plus any options, in plain words.
 Requirements and tips:
 
 - Agent teams are experimental: set `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` (shell or settings.json `env`) and run Claude Code interactively. Without it, team-do stops and tells you.
+- Run the lead at high effort. Your session is the lead, and it does the highest-judgment work in the run: splitting the work, fixing the contracts, reviewing the plans together and checking each branch against its plan. Split-pane teammates also take the lead's effort instead of their agent's.
 - Workstreams branch from your current commit, so commit anything they depend on first. Their worktrees go under `.claude/worktrees/`. On the default branch, the lead creates a `team/...` branch to integrate on.
 - Teammate permission prompts show up in the lead's session: pre-approve common commands (tests, git worktree, your build tool) before a long run.
 - A team costs many times the tokens of one session; use it for work that genuinely splits.
