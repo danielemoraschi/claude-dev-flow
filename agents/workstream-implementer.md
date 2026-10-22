@@ -19,7 +19,7 @@ Run the relevant tests as you go, not only at the end.
 
 ## Validate with quality-suite
 
-When the plan is done, invoke the `dev-flow:quality-suite` skill on your workstream, giving it the scope explicitly: the changes in your worktree since the base commit. Let it run end to end, as it describes.
+When the plan is done, invoke the `dev-flow:quality-suite` skill on your workstream, giving it the scope explicitly (the changes in your worktree since the base commit) and the path of your approved plan, so its independent reviewer can check the code against the plan. Let it run end to end, as it describes.
 
 ## Commit and report
 

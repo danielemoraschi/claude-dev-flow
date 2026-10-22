@@ -82,7 +82,7 @@ The argument is free text: the work plus any options, in plain words.
 Requirements and tips:
 
 - Agent teams are experimental: set `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` (shell or settings.json `env`) and run Claude Code interactively. Without it, team-do stops and tells you.
-- Workstreams branch from your current commit, so commit anything they depend on first. On the default branch, the lead creates a `team/...` branch to integrate on.
+- Workstreams branch from your current commit, so commit anything they depend on first. Their worktrees go under `.claude/worktrees/`. On the default branch, the lead creates a `team/...` branch to integrate on.
 - Teammate permission prompts show up in the lead's session: pre-approve common commands (tests, git worktree, your build tool) before a long run.
 - A team costs many times the tokens of one session; use it for work that genuinely splits.
 
@@ -95,15 +95,17 @@ Runs the pre-merge chain on the current branch's changes, end to end, without st
 3. `/security-review`, only when the diff touches auth, untrusted input, shell, SQL, network or dependencies
 4. `/code-review high --fix`
 5. clean-code
-6. lint, typecheck and tests
+6. independent verification: a `change-reviewer` agent that didn't write the code looks for what the chain missed
+7. lint, typecheck and tests
 
-Each step runs again while it keeps finding material issues, up to 3 passes, with fresh subagents for repeat passes and large diffs. When it hands back, only commit and merge are left.
+Steps 1–5 each run again while they keep finding material issues, up to 3 passes, with fresh subagents for repeat passes and large diffs. Step 6 looks where a self-run, diff-focused review doesn't: claims in the plan, docs and copy against what the code does, tests that can't fail, effects on code the change didn't write, failure paths, duplication, and whether the findings the chain declined deserved it. You fix what it finds or dispute it; a second round runs when anything blocking or should-fix was fixed or disputed, and a blocking finding still held makes the run INCOMPLETE. It's skipped for trivial diffs or with "no verification". When it hands back, only commit and merge are left.
 
 ```
 /dev-flow:quality-suite
 /dev-flow:quality-suite only the last commit
 /dev-flow:quality-suite against develop
 /dev-flow:quality-suite what landed in a1b2c3d
+/dev-flow:quality-suite small fix, no verification
 ```
 
 Or just ask:
@@ -139,12 +141,13 @@ code-modularizer targets 100-200 lines per file and splits before about 300. Bot
 
 ## The agents
 
-dev-flow ships three agents in `agents/`:
+dev-flow ships four agents in `agents/`:
 
 | Agent | Model, effort | Job |
 |---|---|---|
 | `dev-flow:workstream-planner` | Opus, high | Plans one workstream with lets-do, second correctness pass, answers the reviewer |
 | `dev-flow:plan-reviewer` | Opus, high | Attacks a plan independently and reports a verdict; used by lets-do and team-do |
+| `dev-flow:change-reviewer` | Opus, high | Reviews a finished change for what the chain missed; used by quality-suite |
 | `dev-flow:workstream-implementer` | lead's model, medium | Builds the approved plan in its own worktree, runs quality-suite, commits on its branch |
 
 The planner and implementer are written as teammates for team-do. Each expects a brief from a lead (goal, owned files, contracts, base commit, the plugin's skills directory, paths) and reports back to that lead. You can still use them directly as subagents if you give them that brief yourself:

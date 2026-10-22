@@ -1,17 +1,17 @@
 ---
 name: quality-suite
-description: Runs the full pre-merge quality chain on the current branch's changes end to end without stopping, so only commit and merge are left - in order dev-flow:code-modularizer, /simplify, optional /security-review, /code-review high --fix, dev-flow:clean-code, then lint, typecheck and tests, with each step repeated until it stops finding material issues. Use whenever the user says "run the full suite", "run the quality suite", "full review chain", "run all the checks before merge", "polish this branch", or asks to get a change ready to merge, even if they don't name the individual skills.
+description: Runs the full pre-merge quality chain on the current branch's changes end to end without stopping, so only commit and merge are left - in order dev-flow:code-modularizer, /simplify, optional /security-review, /code-review high --fix, dev-flow:clean-code, an independent change-reviewer pass, then lint, typecheck and tests, with each review step repeated until it stops finding material issues. Use whenever the user says "run the full suite", "run the quality suite", "full review chain", "run all the checks before merge", "polish this branch", or asks to get a change ready to merge, even if they don't name the individual skills.
 ---
 
 # Quality suite
 
-Run a fixed chain of review skills over the changes on the current branch, fixing as you go, so the change is ready to merge. Each step works on what the previous step left behind, which is why the order matters: structure first (modularize), then cleanup (simplify), then security and bug hunting on the cleaned code (security review, code review), then a final readability pass (clean code), then lint, typecheck and tests to prove nothing broke (verify).
+Run a fixed chain of review skills over the changes on the current branch, fixing as you go, so the change is ready to merge. Each step works on what the previous step left behind, which is why the order matters: structure first (modularize), then cleanup (simplify), then security and bug hunting on the cleaned code (security review, code review), then a final readability pass (clean code), then an independent reviewer who didn't write the code looks for what the chain missed (verification), then lint, typecheck and tests to prove nothing broke (verify).
 
 ## Run it end to end, in one go
 
-The user calls `/dev-flow:quality-suite` and walks away. When you hand control back, every step (0–6) has run and the only thing left for them is to commit and merge. Handing back early is the failure this skill exists to prevent: the user reads "done-ish", commits, merges, and the remaining review steps never happen.
+The user calls `/dev-flow:quality-suite` and walks away. When you hand control back, every step (0–7) has run and the only thing left for them is to commit and merge. Handing back early is the failure this skill exists to prevent: the user reads "done-ish", commits, merges, and the remaining review steps never happen.
 
-- **Create one todo per step (0–6) at the start**, add one for each repeat pass you decide on, and tick them off as you go. Before you end your turn, look at the list: if anything is unticked and not deliberately skipped (with a reason), you're not done; keep going.
+- **Create one todo per step (0–7) at the start**, add one for each repeat pass you decide on, and tick them off as you go. Before you end your turn, look at the list: if anything is unticked and not deliberately skipped (with a reason), you're not done; keep going.
 - **Don't end your turn between steps.** Each skill in the chain ends with its own summary or report. That summary is intermediate: note what it changed, then immediately invoke the next step in the same turn. Don't show it to the user as a stopping point.
 - **Don't ask permission between steps or for fixes.** Applying the fixes is the point of the run. Where a sub-skill would normally ask before applying a change, apply the ones that are clearly right and list any you deliberately left out in the final report.
 - **Fix what breaks along the way.** If a step's fixes fail lint, typecheck or tests, fix them before moving on. Side issues you notice (a lint rule, a missing test for a fix you made) are part of the run, not reasons to stop.
@@ -29,7 +29,7 @@ One pass of a step often isn't enough: its fixes open up new findings of the sam
 - **Move on** when a pass finds nothing material: no findings, only nits, or only findings you already declined. A small diff with few or no findings needs only one pass.
 - **Stop at 3 passes per step.** If the third pass still finds material issues, list them in the report rather than looping. If passes start undoing each other's changes, stop that step and report it.
 - **Keep a list of findings you declined** (and why) and don't act on them again in later passes or later steps.
-- **Only go forward.** A repeat pass happens right after the pass before it; later steps don't send you back to earlier ones. Step 6 catches anything they break.
+- **Only go forward.** A repeat pass happens right after the pass before it; later steps don't send you back to earlier ones. Steps 6 and 7 catch what they miss or break.
 
 When you decide on another pass, add a todo for it, so the list always shows what's left.
 
@@ -51,6 +51,7 @@ Work out which diff the suite covers before running anything:
 - Otherwise find the base: the branch the project merges into (check the project's CLAUDE.md, e.g. `next`, otherwise `main`/`master`). Use `git merge-base HEAD <base>`.
 - The scope is the committed branch diff plus uncommitted and staged changes, plus new untracked files (`git ls-files --others --exclude-standard`), which `git diff` doesn't show.
 - Record the size: `git diff --stat <merge-base>` (files changed, lines added/removed), adding the untracked files to the count.
+- Note the plan or task the change implements, if the caller gives one or this conversation has one (its path or its text): step 6 checks the code against it.
 - Keep every step on this scope. Some skills review only the uncommitted diff by default, so when the scope includes commits, pass it to each step explicitly (the base branch or commit range, or the changed paths, in whatever form that skill's arguments take).
 
 If the diff is empty, say so and stop. If the diff is documentation-only and the project's CLAUDE.md says doc-only changes skip the chain, say so and stop.
@@ -83,7 +84,17 @@ Invoke `code-review` with args `high --fix`, then repeat as above. On a large di
 
 Invoke the `dev-flow:clean-code` skill on the branch diff as the final readability pass (naming, function size, comments, error handling).
 
-## 6. Verify
+## 6. Independent verification
+
+The steps so far ran in your own stream: you fixed what they found and decided what to decline. Now have someone who didn't write the code look for what the chain missed, and sign off.
+
+1. Skip this for a trivial diff (one file, under about 20 changed lines), or when the request says "no verification"; say which in the report.
+2. Start the `dev-flow:change-reviewer` agent as a subagent, without a `name` (with agent teams enabled, a named subagent launches as a teammate). Its brief: the scope (base, range or changed paths, and whether uncommitted changes are included), the plan or task from step 0, the skills directory `${CLAUDE_SKILL_DIR}/..`, and a summary of this run so far: passes per step and every finding declined, with why. If that agent type isn't available in this session (a plugin update only loads agents after a restart), start an unnamed general-purpose subagent instead, told to read `${CLAUDE_SKILL_DIR}/../../agents/change-reviewer.md` and act as that agent, with the same brief. If neither is possible, say verification was skipped and why.
+3. Fix each blocking and should-fix finding in place, or dispute it with a reason grounded in the code. Fix the nits that are clearly right.
+4. If any blocking or should-fix finding was fixed or disputed, start a fresh reviewer the same way, adding round 1's findings and your response to each. Two rounds at most.
+5. A blocking finding still held after the last round makes the run INCOMPLETE. Should-fix findings still held go in the report, for the user to decide.
+
+## 7. Verify
 
 Run the project's lint, typecheck and test commands (from CLAUDE.md or `package.json`/equivalent) so the fixes from the chain are proven not to break anything. Run the full suite after the last code change, not just the tests near it; if you change anything after verifying (a lint fix, a new test), verify again. If something fails, fix it and rerun; report anything you could not fix with its output.
 
@@ -100,4 +111,5 @@ Only once every step has run (or been deliberately skipped), end with a short su
 - scope: base branch, files and lines changed
 - per step: ran / skipped (why), number of passes and why it stopped (settled, or hit the cap), and what it changed
 - findings left unfixed or declined, with the reason, especially from code-review
+- verification: rounds, verdict, findings by grade, what was fixed, and what's still held and why
 - verify: commands run and their result

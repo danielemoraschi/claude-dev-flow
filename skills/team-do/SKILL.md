@@ -26,6 +26,7 @@ You are the team lead. You find the workstreams, size the team, brief and review
 
 - Agent teams must be enabled: `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` in the environment or in settings.json `env`, in an interactive session. Check with `echo $CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`. If it isn't set, stop and tell the user how to enable it; don't fall back to plain subagents silently.
 - This must be a git repository: workstreams work in their own worktrees. Workstreams branch from the current `HEAD`, so uncommitted changes don't reach them. If the work depends on uncommitted changes, ask the user to commit them first; don't commit them yourself.
+- Worktrees go under `.claude/worktrees/` in the repository. Check it's ignored (`git check-ignore -q .claude/worktrees/` from the repository root); if it isn't, add `.claude/worktrees/` to `.git/info/exclude`, which stays local and is never committed, and say so.
 - If the current branch is the default branch (`main`, `master`, or what CLAUDE.md names), create a branch for the work (`team/<short-task-name>`) and integrate there.
 
 ## 1. Find the work
@@ -79,7 +80,7 @@ Once every plan in the wave is reviewed and its planner has reported, review the
 Spawn one teammate per workstream with the `dev-flow:workstream-implementer` agent type, named `impl-<workstream>`. The spawn prompt carries:
 
 - the plan file path, and the workstream's owned files and contracts
-- the base commit, the worktree path (a sibling directory outside the checkout, e.g. `../<repo>-<workstream>`) and the branch to create (`team/<workstream>`)
+- the base commit, the worktree path (`<repository root>/.claude/worktrees/team-<workstream>`, as an absolute path) and the branch to create (`team/<workstream>`)
 - the names of the other implementers in the wave, for questions about contracts
 
 While they work, answer their questions. When a teammate needs a decision that is genuinely the user's, ask the user and relay the answer. If a teammate stops early or fails, check its transcript, then redirect it or spawn a replacement for its workstream.
