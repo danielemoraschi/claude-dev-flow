@@ -34,7 +34,7 @@ Plans the task the way you'd want it built. Before designing anything, Claude re
 - a **file map**: every new or changed file, the one concept it holds, its measured current size and its expected size, with any file that would grow too big split as part of the plan;
 - in **every step**: *structure* (files touched, what gets extracted), *code* (the functions and types, each named for one job), *errors* (how failures are handled and where) and *tests* (named for the behavior they prove).
 
-Claude then checks the plan itself and has the `plan-reviewer` agent attack it (Opus, high effort), folding the fixes into the steps and adding a short review summary. A second round runs when a blocking finding was fixed or disputed, so a dispute is settled by a reviewer, not by the plan's author. If the agent isn't loaded yet (right after a plugin update, before a restart), a general-purpose subagent reads its file and acts as it. The review is skipped for trivial plans or with "no plan review". The plan ends with a quality-suite pass as the quality gate.
+Claude then checks the plan itself and has the `plan-reviewer` agent attack it (Opus, high effort), folding the fixes into the steps and adding a short review summary. A second round runs when a blocking finding was fixed or disputed, so a dispute is settled by a reviewer, not by the plan's author. If the agent isn't loaded yet (right after a plugin update, before a restart), a general-purpose subagent reads its file and acts as it. The review is skipped for trivial plans or with "no plan review". The plan ends with a quality-suite pass as the quality gate: `/dev-flow:quality-suite-lite` when the plan is small and contained, the full suite otherwise or when the change is risky, with the reason given; you approve it with the plan.
 
 ```
 /dev-flow:lets-do add CSV export to the reports page
@@ -135,7 +135,7 @@ get this ready to merge
 | independent verification | runs | skipped |
 | lint, typecheck, tests, CLAUDE.md's gates | runs | the same |
 
-Use it for small, contained changes: roughly under 100 changed lines, a handful of files, no new modules. On a bigger diff it says so and recommends the full suite, then runs what you asked for. When Claude starts quality-suite on its own, it always runs the full chain.
+Use it for small, contained changes: roughly under 100 changed lines, a handful of files, no new modules. On a bigger diff it says so and recommends the full suite, then runs what you asked for. When Claude starts quality-suite on its own, it always runs the full chain. lets-do can pick lite for a small plan; if the finished change turns out bigger than planned, that lite run switches to the full suite. team-do's implementers always run the full suite.
 
 ```
 /dev-flow:quality-suite-lite

@@ -23,7 +23,7 @@ If the user interrupts mid-run with something else, handle it, then resume at th
 
 ## Lite mode
 
-For small, contained changes there's a lighter run. It's lite when the request says so: it came from `/dev-flow:quality-suite-lite`, or the arguments say "lite". When you start this skill on your own (the user asked to get a change ready to merge), run the full chain: a lighter one is the user's call.
+For small, contained changes there's a lighter run. It's lite when the request says so (it came from `/dev-flow:quality-suite-lite`, or the arguments say "lite"), or when the plan the user approved names lite as its quality gate. When you start this skill on your own (the user asked to get a change ready to merge), run the full chain: a lighter one is the user's call.
 
 | Step | Full run | Lite |
 |---|---|---|
@@ -71,7 +71,10 @@ Work out which diff the suite covers before running anything:
 - Note the plan or task the change implements, if the caller gives one or this conversation has one (its path or its text): step 6 checks the code against it.
 - Keep every step on this scope. Some skills review only the uncommitted diff by default, so when the scope includes commits, pass it to each step explicitly (the base branch or commit range, or the changed paths, in whatever form that skill's arguments take).
 
-In lite mode, if the diff is beyond small (roughly over 100 changed lines, more than 5 files, or new source modules), say so and recommend the full suite, then carry on in lite.
+In lite mode, check the diff is still small (roughly up to 100 changed lines, 5 files, and no new source modules). If it isn't:
+
+- lite chosen by an approved plan: the plan's size was an estimate and it was wrong, so run the full suite instead, and say why;
+- lite asked for directly: say so and recommend the full suite, then carry on in lite, since the user chose it knowing the change.
 
 If the diff is empty, say so and stop. If the diff is documentation-only and the project's CLAUDE.md says doc-only changes skip the chain, say so and stop.
 

@@ -61,7 +61,14 @@ Then have the plan attacked by someone who didn't write it. Skip this only when 
 
 ## Quality gate
 
-Add a `/dev-flow:quality-suite` pass to the plan's quality gates (add a quality-gates section if the plan has none), to run on the finished change before it's committed and merged. This one is a gate to run, not guidance to embed.
+Add a quality-suite pass to the plan's quality gates (add a quality-gates section if the plan has none), to run on the finished change before it's committed and merged. This one is a gate to run, not guidance to embed.
+
+Choose which one from the plan itself, and give the reason in one line:
+
+- **`/dev-flow:quality-suite-lite`** when the file map shows a small, contained change: roughly under 100 changed lines, a handful of files, and no new modules.
+- **`/dev-flow:quality-suite`** otherwise, and always when the change is risky whatever its size: a public API, data or migrations, or anything the user calls critical.
+
+The user approves the choice with the plan. If the finished change turns out bigger than planned, the lite run switches to the full suite on its own.
 
 ## Overrides
 
