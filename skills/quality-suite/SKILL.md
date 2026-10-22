@@ -11,7 +11,7 @@ Run a fixed chain of review skills over the changes on the current branch, fixin
 
 The user calls `/dev-flow:quality-suite` and walks away. When you hand control back, every step (0–7) has run and the only thing left for them is to commit and merge. Handing back early is the failure this skill exists to prevent: the user reads "done-ish", commits, merges, and the remaining review steps never happen.
 
-- **Create one todo per step (0–7) at the start**, add one for each repeat pass you decide on, and tick them off as you go. Before you end your turn, look at the list: if anything is unticked and not deliberately skipped (with a reason), you're not done; keep going.
+- **Create one todo per step (0–7) at the start** (in lite mode, per step that runs), add one for each repeat pass you decide on, and tick them off as you go. Before you end your turn, look at the list: if anything is unticked and not deliberately skipped (with a reason), you're not done; keep going.
 - **Don't end your turn between steps.** Each skill in the chain ends with its own summary or report. That summary is intermediate: note what it changed, then immediately invoke the next step in the same turn. Don't show it to the user as a stopping point.
 - **Don't ask permission between steps or for fixes.** Applying the fixes is the point of the run. Where a sub-skill would normally ask before applying a change, apply the ones that are clearly right and list any you deliberately left out in the final report.
 - **Fix what breaks along the way.** If a step's fixes fail lint, typecheck or tests, fix them before moving on. Side issues you notice (a lint rule, a missing test for a fix you made) are part of the run, not reasons to stop.
@@ -20,6 +20,23 @@ The user calls `/dev-flow:quality-suite` and walks away. When you hand control b
 If the user interrupts mid-run with something else, handle it, then resume at the step you were on. If they ask to commit, merge, push or delete the branch while steps are still pending, list the pending steps and ask whether to finish first before doing it, so a merge never slips through half-reviewed.
 
 `simplify`, `code-review` and `security-review` are built into Claude Code; `code-modularizer` and `clean-code` ship with this plugin. Use the built-in `code-review` (the one that takes `high --fix`), not a plugin's like `code-review:code-review`, which reviews pull requests differently.
+
+## Lite mode
+
+For small, contained changes there's a lighter run. It's lite when the request says so: it came from `/dev-flow:quality-suite-lite`, or the arguments say "lite". When you start this skill on your own (the user asked to get a change ready to merge), run the full chain: a lighter one is the user's call.
+
+| Step | Full run | Lite |
+|---|---|---|
+| 0. Scope | as below | as below, plus a size warning |
+| 1. code-modularizer | always | only if a changed file is over the code-modularizer limit (or CLAUDE.md's), measured with `wc -l` |
+| 2. /simplify | repeats until it settles | one pass |
+| 3. /security-review | when the diff calls for it | the same |
+| 4. /code-review high --fix | repeats until it settles | one pass |
+| 5. clean-code | repeats until it settles | one pass |
+| 6. Independent verification | runs | skipped |
+| 7. Verify | runs | the same |
+
+In lite, "Repeat a step until it settles" doesn't apply: anything material a single pass leaves goes in the report. Everything else holds as in a full run: run to the end without stopping, don't ask permission between steps, fix what breaks, ask only for the user's decisions, follow the ground rules.
 
 ## Repeat a step until it settles
 
@@ -54,11 +71,13 @@ Work out which diff the suite covers before running anything:
 - Note the plan or task the change implements, if the caller gives one or this conversation has one (its path or its text): step 6 checks the code against it.
 - Keep every step on this scope. Some skills review only the uncommitted diff by default, so when the scope includes commits, pass it to each step explicitly (the base branch or commit range, or the changed paths, in whatever form that skill's arguments take).
 
+In lite mode, if the diff is beyond small (roughly over 100 changed lines, more than 5 files, or new source modules), say so and recommend the full suite, then carry on in lite.
+
 If the diff is empty, say so and stop. If the diff is documentation-only and the project's CLAUDE.md says doc-only changes skip the chain, say so and stop.
 
 ## 1. code-modularizer
 
-Invoke the `dev-flow:code-modularizer` skill on the changed files. Splitting oversized files first means later passes review the final layout instead of code that is about to move. Respect the project's own size limits and layering rules if CLAUDE.md states them.
+Invoke the `dev-flow:code-modularizer` skill on the changed files (in lite mode, only when a changed file is over the size limit; see Lite mode). Splitting oversized files first means later passes review the final layout instead of code that is about to move. Respect the project's own size limits and layering rules if CLAUDE.md states them.
 
 ## 2. /simplify
 
@@ -86,6 +105,8 @@ Invoke the `dev-flow:clean-code` skill on the branch diff as the final readabili
 
 ## 6. Independent verification
 
+Skipped in lite mode.
+
 The steps so far ran in your own stream: you fixed what they found and decided what to decline. Now have someone who didn't write the code look for what the chain missed, and sign off.
 
 1. Skip this for a trivial diff (one file, under about 20 changed lines), or when the request says "no verification"; say which in the report.
@@ -106,10 +127,10 @@ Run the project's lint, typecheck and test commands (from CLAUDE.md or `package.
 
 ## Report
 
-Only once every step has run (or been deliberately skipped), end with a short summary. Its first line is the status: "COMPLETE, ready to commit and merge", or "INCOMPLETE" with the pending steps and the blocker.
+Only once every step has run (or been deliberately skipped), end with a short summary. Its first line is the status: "COMPLETE, ready to commit and merge", or "INCOMPLETE" with the pending steps and the blocker; in lite mode, "COMPLETE (lite)" or "INCOMPLETE (lite)".
 
 - scope: base branch, files and lines changed
 - per step: ran / skipped (why), number of passes and why it stopped (settled, or hit the cap), and what it changed
-- findings left unfixed or declined, with the reason, especially from code-review
+- findings left unfixed or declined, with the reason, especially from code-review; in lite mode, a material leftover from a single pass is listed with "consider the full suite"
 - verification: rounds, verdict, findings by grade, what was fixed, and what's still held and why
 - verify: commands run and their result

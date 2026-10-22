@@ -7,6 +7,7 @@ A Claude Code plugin for planning and finishing changes.
 | `/dev-flow:lets-do` | Plans a task with clean-code and modularity built in, plus a quality-suite gate | You only |
 | `/dev-flow:team-do` | Splits work into parallel workstreams and runs them with an agent team | You only |
 | `/dev-flow:quality-suite` | Runs the full pre-merge review chain on the branch, fixing as it goes | You, or Claude when you ask to get a change ready to merge |
+| `/dev-flow:quality-suite-lite` | Same chain, one pass each and no independent reviewer: for small changes | You only |
 | `/dev-flow:clean-code` | Readability pass: naming, function size, comments, error handling | You, or Claude when relevant |
 | `/dev-flow:code-modularizer` | Splits large or mixed-purpose files into small, focused modules | You, or Claude when relevant |
 
@@ -121,6 +122,26 @@ get this ready to merge
 - Running it on a commit that's already merged reviews just that change, and puts the fixes on a new short-lived branch.
 - It asks you only for decisions that are genuinely yours, such as a change to public API or two designs with real trade-offs. Everything else it fixes.
 - The report starts with `COMPLETE` or `INCOMPLETE`. It never commits, pushes or merges.
+
+### Lite, for small changes
+
+`/dev-flow:quality-suite-lite` (or `/dev-flow:quality-suite lite`) runs the same chain with small-change settings:
+
+| Step | Full | Lite |
+|---|---|---|
+| code-modularizer | always | only if a changed file is over the size limit |
+| `/simplify`, `/code-review high --fix`, clean-code | repeat until they settle | one pass each |
+| `/security-review` | when the diff calls for it | the same |
+| independent verification | runs | skipped |
+| lint, typecheck, tests, CLAUDE.md's gates | runs | the same |
+
+Use it for small, contained changes: roughly under 100 changed lines, a handful of files, no new modules. On a bigger diff it says so and recommends the full suite, then runs what you asked for. When Claude starts quality-suite on its own, it always runs the full chain.
+
+```
+/dev-flow:quality-suite-lite
+/dev-flow:quality-suite-lite against next
+/dev-flow:quality-suite lite
+```
 
 ## clean-code and code-modularizer
 
