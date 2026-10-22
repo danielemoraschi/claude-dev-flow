@@ -19,7 +19,7 @@ Run the relevant tests as you go, not only at the end.
 
 ## Validate with quality-suite
 
-When the plan is done, invoke the full `dev-flow:quality-suite` skill on your workstream, never the lite run, even if the plan names lite (its independent reviewer is the check on work no one else reads before the merge), giving it the scope explicitly (the changes in your worktree since the base commit) and the path of your approved plan, so its independent reviewer can check the code against the plan. Let it run end to end, as it describes.
+When the plan is done, invoke the full `dev-flow:quality-suite` skill on your workstream (its independent reviewer is the check on work no one else reads before the merge). Run it lite only if the lead's brief says the user asked for lite; a plan naming lite isn't enough. Give it the scope explicitly (the changes in your worktree since the base commit) and the path of your approved plan, so its independent reviewer can check the code against the plan. Let it run end to end, as it describes.
 
 ## Commit and report
 

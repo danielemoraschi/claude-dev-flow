@@ -135,7 +135,7 @@ get this ready to merge
 | independent verification | runs | skipped |
 | lint, typecheck, tests, CLAUDE.md's gates | runs | the same |
 
-Use it for small, contained changes: roughly under 100 changed lines, a handful of files, no new modules. On a bigger diff it says so and recommends the full suite, then runs what you asked for. When Claude starts quality-suite on its own, it always runs the full chain. lets-do can pick lite for a small plan; if the finished change turns out bigger than planned, that lite run switches to the full suite. team-do's implementers always run the full suite.
+Use it for small, contained changes: roughly under 100 changed lines, a handful of files, no new modules. On a bigger diff it says so and recommends the full suite, then runs what you asked for. When Claude starts quality-suite on its own, it always runs the full chain. lets-do can pick lite for a small plan; if the finished change turns out bigger than planned, that lite run switches to the full suite. Naming one in the task ("use quality-suite-lite", "full quality-suite") always wins, and a lite you chose stays lite. team-do's implementers run the full suite unless the task asks for lite.
 
 ```
 /dev-flow:quality-suite-lite

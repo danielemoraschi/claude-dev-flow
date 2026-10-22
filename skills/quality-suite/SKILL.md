@@ -73,8 +73,8 @@ Work out which diff the suite covers before running anything:
 
 In lite mode, check the diff is still small (roughly up to 100 changed lines, 5 files, and no new source modules). If it isn't:
 
-- lite chosen by an approved plan: the plan's size was an estimate and it was wrong, so run the full suite instead, and say why;
-- lite asked for directly: say so and recommend the full suite, then carry on in lite, since the user chose it knowing the change.
+- lite that an approved plan chose by size: the size was an estimate and it was wrong, so run the full suite instead, and say why;
+- lite the user chose (asked for directly, or a plan's gate marked as the user's choice): say so and recommend the full suite, then carry on in lite, since the user chose it knowing the change.
 
 If the diff is empty, say so and stop. If the diff is documentation-only and the project's CLAUDE.md says doc-only changes skip the chain, say so and stop.
 

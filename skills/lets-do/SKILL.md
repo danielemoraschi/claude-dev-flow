@@ -63,13 +63,13 @@ Then have the plan attacked by someone who didn't write it. Skip this only when 
 
 Add a quality-suite pass to the plan's quality gates (add a quality-gates section if the plan has none), to run on the finished change before it's committed and merged. This one is a gate to run, not guidance to embed.
 
-Choose which one from the plan itself, and give the reason in one line:
+If the task names one ("use quality-suite-lite", "full quality-suite"), use it and write the gate as **the user's choice**. Otherwise choose from the plan itself, write the gate as **chosen by size**, and give the reason in one line:
 
 - **`/dev-flow:quality-suite-lite`** when the file map shows a small, contained change: roughly under 100 changed lines, a handful of files, and no new modules.
 - **`/dev-flow:quality-suite`** otherwise, and always when the change is risky whatever its size: a public API, data or migrations, or anything the user calls critical.
 
-The user approves the choice with the plan. If the finished change turns out bigger than planned, the lite run switches to the full suite on its own.
+The user approves the choice with the plan. If lite was chosen by size and the finished change turns out bigger than planned, the lite run switches to the full suite on its own; lite as the user's choice stays lite.
 
 ## Overrides
 
-The user's own words win. If the task says to drop or change any default (e.g. "ignore code-modularizer", "no quality-suite", "skip clean-code", "no plan review"), follow that instead.
+The user's own words win. If the task says to drop or change any default (e.g. "ignore code-modularizer", "no quality-suite", "use quality-suite-lite", "full quality-suite", "skip clean-code", "no plan review"), follow that instead.

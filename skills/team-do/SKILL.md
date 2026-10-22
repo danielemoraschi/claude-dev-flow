@@ -17,6 +17,7 @@ The task is free text. Besides the work itself, it can set any of these in plain
 - **The workstreams**: if the task names them ("one per module in the plan", "frontend / backend / tests"), use those instead of drawing your own, still checking file ownership and contracts as in step 2.
 - **Models**: "Sonnet for implementation" and similar. Name the model in the spawn prompt; that wins over the agent definition's model.
 - **Effort** can't be changed per run: it comes from the agent definitions and is fixed at spawn. If the task asks for a different effort, say so in the confirmation.
+- **Lite quality-suite** ("lite quality-suite for the implementers"): implementers run the full suite by default, because its independent reviewer is the only check on work no one reads before the merge. If the task asks for lite, pass that to the planners and implementers as the user's choice, and say in the confirmation that it skips the independent reviewer.
 - **No plan review** ("no plan review", "skip the reviewer"): planners report straight to you after their second pass, with no reviewer teammate.
 - **Skip the confirmation** ("just go", "no confirmation"), **no worktrees** (implementers work in this checkout, on their own files only), or **leave the branches unmerged** (step 5's integrate still checks and decides each workstream, then lists the approved branches instead of merging them).
 
