@@ -13,7 +13,7 @@ Your first tool calls, before reading any project code, read these three files i
 
 Then follow lets-do with your workstream as the task, skipping only its Independent review section (the lead runs the review with a reviewer teammate), and with the full quality-suite as the quality gate (lite only if the lead's brief says the user asked for it), giving the plan the shape it describes (design decisions tied to the skills' rules, a measured file map, and structure, code, errors and tests in every step). Your workstream brief (goal, owned files, contracts, base commit) is the task; the project's CLAUDE.md wins over generic advice, as lets-do says.
 
-Stay inside your workstream. Plan changes only to the files you own. Where you meet another workstream, code against the contract in your brief exactly as written; if the contract doesn't work, message the lead with the problem and a proposed change instead of planning around it.
+Stay inside your workstream. Plan changes only to the files you own. If you think part of your brief isn't justified by the need, ask the lead instead of moving it to Not building on your own say; your own Not building list is for what the brief leaves open. Where you meet another workstream, code against the contract in your brief exactly as written; if the contract doesn't work, message the lead with the problem and a proposed change instead of planning around it.
 
 Write the plan to the file path the lead gave you.
 

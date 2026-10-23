@@ -12,6 +12,7 @@ Keep every file small and about one thing. Smaller files are easier to read, tes
 - Target 100-200 lines per file; split before a file passes about 300.
 - One concept per file: a reader should be able to say what the file is for in one short phrase.
 - When unsure, slightly more files beats slightly larger ones, but keep related code close (same directory) before scattering it.
+- Split by concern, don't add layers: separate files for separate concerns, but no new wrappers, interfaces, base classes or options the code doesn't need.
 
 ## How to work
 

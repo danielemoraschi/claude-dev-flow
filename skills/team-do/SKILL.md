@@ -18,7 +18,8 @@ The task is free text. Besides the work itself, it can set any of these in plain
 - **Models**: "Sonnet for implementation" and similar. Name the model in the spawn prompt; that wins over the agent definition's model.
 - **Effort** can't be changed per run: it comes from the agent definitions and is fixed at spawn. If the task asks for a different effort, say so in the confirmation.
 - **Lite quality-suite** ("lite quality-suite for the implementers"): implementers run the full suite by default, because its independent reviewer is the only check on work no one reads before the merge. If the task asks for lite, pass that to the planners and implementers as the user's choice, and say in the confirmation that it skips the independent reviewer.
-- **No plan review** ("no plan review", "skip the reviewer"): planners report straight to you after their second pass, with no reviewer teammate.
+- **No plan review** ("no plan review", "skip the reviewer"): no review of your breakdown, and planners report straight to you after their second pass, with no reviewer teammate.
+- **Question the scope** ("question the scope"): at step 4's confirmation, push back on any part of the task the need doesn't justify, with your recommendation, and plan only what the user confirms.
 - **Skip the confirmation** ("just go", "no confirmation"), **no worktrees** (implementers work in this checkout, on their own files only), or **leave the branches unmerged** (step 5's integrate still checks and decides each workstream, then lists the approved branches instead of merging them).
 
 You are the team lead. You find the workstreams, size the team, brief and review the teammates, and integrate their work. You don't implement workstreams yourself: wait for your teammates.
@@ -51,9 +52,15 @@ A workstream is a self-contained unit with a clear deliverable that one teammate
 - Unless the task sets it, run every parallel workstream of a wave at once, up to 5 (the docs' 3-5 sweet spot: more adds coordination and tokens faster than speed). With more workstreams than that, run them in waves of 5.
 - If no wave has two or more workstreams, a team adds cost without speed. Say so and suggest `/dev-flow:lets-do` instead, then stop.
 
-## 4. Confirm before spawning
+## 4. Review the breakdown, then confirm
 
-A team spends many times the tokens of one session, so show the user the breakdown once before spawning anyone: the waves, each workstream (name, goal, owned files, depends on), the contracts, the team size, and the models and effort. Ask for a go-ahead (with AskUserQuestion if available), and adjust if the user changes anything. Skip this only if the task says to go without confirming.
+Your breakdown is the plan every teammate works inside, so have it attacked before anyone builds on it. Skip this only when the task says "no plan review".
+
+1. Start the `dev-flow:plan-reviewer` agent as a subagent, without a `name` (a named one would launch as a teammate). Its brief: the task, your breakdown (waves; each workstream's goal, owned files and scope; the contracts; anything cut), the skills directory (the parent of this skill's base directory, resolved), the base commit, and that it's a team-do breakdown. If that agent type isn't available in this session, start an unnamed general-purpose subagent instead, told to read `${CLAUDE_SKILL_DIR}/../../agents/plan-reviewer.md` and act as that agent, with the same brief. If neither is possible, say the review was skipped and why.
+2. Fix each finding in the breakdown, or dispute it with a reason grounded in the code. If any blocking finding was fixed or disputed, start a fresh reviewer with the earlier findings and your responses. Two rounds at most.
+3. Decisions the reviewer flags as the user's go into the confirmation as questions.
+
+A team spends many times the tokens of one session, so show the user the breakdown once before spawning anyone: the waves, each workstream (name, goal, owned files, depends on), the contracts, the team size, the models and effort, and a short summary of the breakdown review (rounds, findings by grade, what changed). Ask for a go-ahead (with AskUserQuestion if available), and adjust if the user changes anything. Skip this only if the task says to go without confirming.
 
 ## 5. Run each wave
 
@@ -74,7 +81,7 @@ When a planner says its plan is ready for review, spawn a `dev-flow:plan-reviewe
 
 ### Review across workstreams
 
-Once every plan in the wave is reviewed and its planner has reported, review the plans together, for what no single reviewer could see: contracts match on both sides, no file appears in two workstreams, and nothing falls between workstreams. Spot-check that each plan has the lets-do shape: design decisions tied to clean-code and code-modularizer rules and carried by the steps, a measured file map, and structure, code, errors and tests in every step. Send corrections to the planner that owns them and wait for the revision. Then ask the planners to shut down.
+Once every plan in the wave is reviewed and its planner has reported, review the plans together, for what no single reviewer could see: contracts match on both sides, no file appears in two workstreams, and nothing falls between workstreams. Check each plan's Not building list too: no plan cuts something the task asked for, and two workstreams' cuts don't leave a gap between them. A cut that drops something the user asked for goes back to its planner. Spot-check that each plan has the lets-do shape: design decisions tied to clean-code and code-modularizer rules and carried by the steps, a measured file map, and structure, code, errors and tests in every step. Send corrections to the planner that owns them and wait for the revision. Then ask the planners to shut down.
 
 ### Implement
 
@@ -114,7 +121,8 @@ Then, for the approved workstreams:
 End with a short summary. Its first line is the status: "COMPLETE, merged into <branch>, ready to review and push", "PARTIAL: N of M merged, K need you", or "INCOMPLETE" with the blocker when the run couldn't start or merged nothing.
 
 - **needs you**, first: per NEEDS-HUMAN workstream, its branch and worktree, why it was held, the open findings, and the decision to make, with your recommendation
+- the breakdown review: rounds, findings, what it changed
 - waves and workstreams, with the teammates that planned, reviewed and built each
-- per workstream: APPROVED or NEEDS-HUMAN, plan file, review verdict and how disputes were settled, quality-suite status, plan-check result, commits merged
+- per workstream: APPROVED or NEEDS-HUMAN, plan file, its Not building items (so the user sees every cut), review verdict and how disputes were settled, quality-suite status, plan-check result, commits merged
 - integration: conflicts resolved, fixes made, lint/typecheck/test results
 - anything left unfixed, and any worktree or branch left behind

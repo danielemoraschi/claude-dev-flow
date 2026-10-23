@@ -31,6 +31,7 @@ To get a newer version later: `/plugin marketplace update dev-flow`, then start 
 Plans the task the way you'd want it built. Before designing anything, Claude reads the clean-code and code-modularizer skills, on every run, and says so with their line counts. The plan then has a fixed shape, so the decisions are visible and a missing one stands out:
 
 - **design decisions**: each clean-code and modularity decision, the rule it applies and the step it lands in, so you can see where the skills shaped the plan;
+- **not building**: what the plan deliberately leaves out, one line each, so you can veto a cut;
 - a **file map**: every new or changed file, the one concept it holds, its measured current size and its expected size, with any file that would grow too big split as part of the plan;
 - in **every step**: *structure* (files touched, what gets extracted), *code* (the functions and types, each named for one job), *errors* (how failures are handled and where) and *tests* (named for the behavior they prove).
 
@@ -43,9 +44,11 @@ Claude then checks the plan itself and has the `plan-reviewer` agent attack it (
 /dev-flow:lets-do split src/billing/invoice.ts by concern, no quality-suite
 /dev-flow:lets-do add rate limiting to the public API; ignore code-modularizer
 /dev-flow:lets-do rename the config loader, no plan review
+/dev-flow:lets-do add CSV export, question the scope
 ```
 
-- Anything in the task overrides the defaults: "ignore code-modularizer", "skip clean-code", "no quality-suite", "no plan review".
+- Anything in the task overrides the defaults: "ignore code-modularizer", "skip clean-code", "no quality-suite", "no plan review", "question the scope" (it pushes back on parts of the task the need doesn't justify before planning).
+- It plans the smallest complete change: for each piece it takes the first option that fully works (not building it at all, something already in the codebase, the standard library, an installed dependency, one line, and only then new code), while still reaching every caller, test and fixture the change breaks. It never cuts validation, error handling, security or accessibility.
 - The project's CLAUDE.md wins over the generic advice (file-size limits, layering, naming).
 - With no task, it asks what to do.
 
@@ -54,11 +57,13 @@ Claude then checks the plan itself and has the `plan-reviewer` agent attack it (
 Runs a piece of work as an [agent team](https://code.claude.com/docs/en/agent-teams), with your session as the lead:
 
 1. The lead finds the work (your task, a plan file, or the plan already in the conversation) and splits it into **workstreams**. Each workstream owns its files and can be built without waiting on another one's unfinished code. Work that others depend on goes in an earlier wave.
-2. It writes down the contracts where workstreams meet, sizes the team, and shows you the breakdown before spawning anyone.
+2. It writes down the contracts where workstreams meet, sizes the team, has `plan-reviewer` check the breakdown (every file owned, contracts complete, each workstream bounded), and shows you the breakdown with the review's summary before spawning anyone.
 3. Each workstream gets a **planner** teammate (Opus, high effort). The planner follows lets-do for its workstream and gives the plan a second correctness pass.
 4. A **reviewer** teammate (Opus, high effort) then attacks each plan independently: wrong assumptions about the code, missed edge cases, contract breaks, vague structure or names, over-engineering. It works through graded findings with the planner in at most two rounds, and the lead settles anything still disputed. The lead then reviews all the plans together for consistency across workstreams.
 5. Each workstream then gets an **implementer** teammate (medium effort). The implementer builds the plan in its own worktree, runs quality-suite on it and commits on its own branch.
 6. The lead checks each branch against its plan (file map, design decisions, contracts), merges the approved ones in dependency order and runs lint, typecheck and tests. A workstream that can't be settled stays on its branch as **needs-human**, with the decision you need to make; the rest still merge. Pushing and opening a PR are left to you.
+
+The planners, the plan reviewer and the implementers' quality-suite all apply lets-do's smallest-complete-change rules, and the report lists each workstream's cuts. "question the scope" makes the lead push back on parts of the task at the confirmation, before spawning anyone.
 
 ```
 /dev-flow:team-do implement the plan above
@@ -168,8 +173,8 @@ dev-flow ships four agents in `agents/`:
 | Agent | Model, effort | Job |
 |---|---|---|
 | `dev-flow:workstream-planner` | Opus, high | Plans one workstream with lets-do, second correctness pass, answers the reviewer |
-| `dev-flow:plan-reviewer` | Opus, high | Attacks a plan independently and reports a verdict; used by lets-do and team-do |
-| `dev-flow:change-reviewer` | Opus, high | Reviews a finished change for what the chain missed; used by quality-suite |
+| `dev-flow:plan-reviewer` | Opus, high | Attacks a plan independently, including anything it builds that the task doesn't need, and reports a verdict; used by lets-do and team-do |
+| `dev-flow:change-reviewer` | Opus, high | Reviews a finished change for what the chain missed, including code that didn't need to exist; used by quality-suite |
 | `dev-flow:workstream-implementer` | lead's model, medium | Builds the approved plan in its own worktree, runs quality-suite, commits on its branch |
 
 The planner and implementer are written as teammates for team-do. Each expects a brief from a lead (goal, owned files, contracts, base commit, the plugin's skills directory, paths) and reports back to that lead. You can still use them directly as subagents if you give them that brief yourself:
@@ -188,6 +193,10 @@ from the reports page, owns src/export/, base commit HEAD, skills directory <pat
 ```
 
 For planning in your own session, lets-do is usually the better fit. The planner is lets-do run for one workstream of a larger split, on Opus at high effort, without talking to you, with a second correctness pass and a review round required. The implementer has no skill counterpart.
+
+## Credits
+
+The smallest-complete-change rules in lets-do and the reviewers are adapted from [ponytail](https://github.com/DietrichGebert/ponytail) by Dietrich Gebert (MIT).
 
 ## License
 

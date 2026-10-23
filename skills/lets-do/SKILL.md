@@ -21,6 +21,22 @@ Do this on every run, even if you read them earlier in this conversation: earlie
 
 Then say in one line that you read them, with each file's line count, so the user can see it happened. If a file can't be read, stop and say so instead of planning without it.
 
+## The smallest complete change
+
+The best code is code you didn't have to write. Plan the whole change with the least new code:
+
+- **Scope first.** Before designing, list where the change must reach: callers, tests, fixtures, config, exports, and what it could break for users (data lost or exposed, callers that stop working). That's the scope; extra features aren't.
+- **For each piece, take the first option that fully works:**
+  1. Does it need to exist? If nobody asked for it, it goes in Not building.
+  2. Is it already in this codebase (a helper, component, service, pattern)? Use it the way the surrounding code does.
+  3. Is it in the standard library or the platform? Use it, unless the project has its own.
+  4. Is it in a dependency that's already installed? Use it. Never add a dependency for a few lines.
+  5. Can it be one line a reader gets at a glance? One line.
+  6. Otherwise, the minimum code that works.
+- No abstraction, wrapper, option, configuration or "for later" code nobody asked for. Keep the structure the codebase already has. Deleting beats adding. Between options of equal size, take the one that's correct on edge cases.
+- Be lazy about the solution, never about the change: every caller, test and fixture the change breaks is part of the plan.
+- Never cut validation at trust boundaries, error handling that prevents data loss, security, accessibility, or anything the user asked for.
+
 ## Build the plan with them embedded
 
 Their content should shape the plan itself, and the plan should show where it did. A line saying "follow clean-code" or "apply code-modularizer" applies nothing; a plan that's merely tidy doesn't show the skills were used either. Give the plan this shape, so the decisions are visible in it and a missing one shows:
@@ -29,12 +45,14 @@ Their content should shape the plan itself, and the plan should show where it di
   - *`options.ts` split out of `map.ts`, so `map.ts` stays composition only*: code-modularizer, one concept per file. Step 2.
   - *`checkAttachable` renamed `resolveAttachable`, since it now returns the element*: clean-code, a name says what it does. Step 1.
   - *Invalid options throw `invalid-input` at the boundary, not a `TypeError` deep inside*: clean-code, handle errors in one clear place, with context. Step 2.
+  - *Options reported through the existing `fail.ts` helpers instead of a new validator*: the smallest change, reuse what exists. Step 2.
 
   Cover every file the change creates or grows, the main new functions and types, and the error handling. A decision listed here with no step carrying it, or a step making a structural choice not listed here, means the plan isn't finished.
+- **Not building**, after the design decisions: what the plan deliberately leaves out (features, options, flexibility, "for later" code), one line each, so the user can veto a cut. Write "nothing" if nothing was cut.
 - **File map**, before the steps: every new or changed file, with the one concept it holds, its current size (measure existing files with `wc -l`, don't guess) and its expected size after the change. Any file that would pass the modularizer's limits gets split as a step of this plan, not afterwards.
 - **Each implementation step** says, besides what it does:
   - *Structure*: which files it creates or changes, and what it extracts or keeps out of each one.
-  - *Code*: the functions and types it adds or changes, named intention-revealingly, each doing one thing, with few arguments and no boolean flags or hidden side effects.
+  - *Code*: the functions and types it adds or changes, named intention-revealingly, each doing one thing, with few arguments and no boolean flags or hidden side effects, and what it reuses (an existing helper, a platform feature, an installed dependency) instead of writing.
   - *Errors*: how the step's failure cases are handled and where, in the project's idiom.
   - *Tests*: the tests that prove the step, named for the behavior they check.
 
@@ -49,6 +67,7 @@ Go over the plan again against the code, as a reviewer rather than its author, a
 - The file map is measured, and no file in it passes the modularizer's limits or holds more than one concept.
 - Every step has concrete structure, code, errors and tests lines.
 - Each step is small enough to implement and verify on its own.
+- Nothing in the plan is something the task doesn't need; each step reuses what exists where it can; Not building names the cuts; every caller, test and fixture the change breaks is in a step.
 
 ## Independent review
 
@@ -72,4 +91,4 @@ The user approves the choice with the plan. If lite was chosen by size and the f
 
 ## Overrides
 
-The user's own words win. If the task says to drop or change any default (e.g. "ignore code-modularizer", "no quality-suite", "use quality-suite-lite", "full quality-suite", "skip clean-code", "no plan review"), follow that instead.
+The user's own words win. If the task says to drop or change any default (e.g. "ignore code-modularizer", "no quality-suite", "use quality-suite-lite", "full quality-suite", "skip clean-code", "no plan review", "question the scope"), follow that instead. "Question the scope" means: before planning, push back on any part of the task the need doesn't justify, as questions to the user with your recommendation, then plan what they confirm.
