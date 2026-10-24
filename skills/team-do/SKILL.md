@@ -121,8 +121,9 @@ Then, for the approved workstreams:
 End with a short summary. Its first line is the status: "COMPLETE, merged into <branch>, ready to review and push", "PARTIAL: N of M merged, K need you", or "INCOMPLETE" with the blocker when the run couldn't start or merged nothing.
 
 - **needs you**, first: per NEEDS-HUMAN workstream, its branch and worktree, why it was held, the open findings, and the decision to make, with your recommendation
-- the breakdown review: rounds, findings, what it changed
+- **the breakdown review**, always: rounds, findings by grade, what it changed, or that it was skipped and why
+- **cuts**, always: each workstream's Not building items, one line each, copied from its plan, so the user sees every cut without opening the plans; "none" when a plan cut nothing
 - waves and workstreams, with the teammates that planned, reviewed and built each
-- per workstream: APPROVED or NEEDS-HUMAN, plan file, its Not building items (so the user sees every cut), review verdict and how disputes were settled, quality-suite status, plan-check result, commits merged
+- per workstream: APPROVED or NEEDS-HUMAN, plan file, review verdict and how disputes were settled, quality-suite status, plan-check result, commits merged
 - integration: conflicts resolved, fixes made, lint/typecheck/test results
 - anything left unfixed, and any worktree or branch left behind

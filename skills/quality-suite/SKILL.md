@@ -102,6 +102,8 @@ Skip it for pure refactors, internal logic, tests, styling and docs, and say in 
 
 Invoke `code-review` with args `high --fix`, then repeat as above. On a large diff, run at least a second pass even if the first was quiet; one high-effort pass rarely covers that much code.
 
+In a git worktree (`git rev-parse --git-dir` differs from `git rev-parse --git-common-dir`), run it with `high` only, without `--fix`: `--fix` applies its fixes outside the worktree. Pass the scope explicitly, apply the findings by hand in the worktree, and repeat as above.
+
 ## 5. clean-code
 
 Invoke the `dev-flow:clean-code` skill on the branch diff as the final readability pass (naming, function size, comments, error handling).
