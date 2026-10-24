@@ -52,11 +52,12 @@ Their content should shape the plan itself, and the plan should show where it di
 - **File map**, before the steps: every new or changed file, with the one concept it holds, its current size (measure existing files with `wc -l`, don't guess) and its expected size after the change. Any file that would pass the modularizer's limits gets split as a step of this plan, not afterwards.
 - **Each implementation step** says, besides what it does:
   - *Structure*: which files it creates or changes, and what it extracts or keeps out of each one.
-  - *Code*: the functions and types it adds or changes, named intention-revealingly, each doing one thing, with few arguments and no boolean flags or hidden side effects, and what it reuses (an existing helper, a platform feature, an installed dependency) instead of writing.
+  - *Code*: the functions and types it adds or changes, named intention-revealingly, each doing one thing, with few arguments and no boolean flags or hidden side effects.
+  - *Reuses*: what the step uses instead of writing new code (an existing helper, component or pattern in the codebase, a standard-library or platform feature, an installed dependency), each named with where it lives; or "nothing to reuse" and what it checked. A step that writes something the codebase already has isn't planned yet.
   - *Errors*: how the step's failure cases are handled and where, in the project's idiom.
   - *Tests*: the tests that prove the step, named for the behavior they check.
 
-A step whose structure or code line is vague ("clean up as needed", "helpers", "a utils file") isn't planned yet. Where the project's CLAUDE.md sets its own rules (file-size limits, layering, naming), those win over the skills' generic advice.
+A step whose structure, code or reuses line is vague ("clean up as needed", "helpers", "a utils file", "reuse where possible") isn't planned yet. Where the project's CLAUDE.md sets its own rules (file-size limits, layering, naming), those win over the skills' generic advice.
 
 ## Second pass
 
@@ -65,9 +66,9 @@ Go over the plan again against the code, as a reviewer rather than its author, a
 - Every file, function, type and command the plan names exists, or is clearly marked as new.
 - The design decisions name each clean-code and modularity decision with its rule and step, and every step's structural choices appear there.
 - The file map is measured, and no file in it passes the modularizer's limits or holds more than one concept.
-- Every step has concrete structure, code, errors and tests lines.
+- Every step has concrete structure, code, reuses, errors and tests lines.
 - Each step is small enough to implement and verify on its own.
-- Nothing in the plan is something the task doesn't need; each step reuses what exists where it can; Not building names the cuts; every caller, test and fixture the change breaks is in a step.
+- Nothing in the plan is something the task doesn't need; each step's Reuses line names what it reuses, and nothing a step writes already exists in the codebase, the standard library or an installed dependency (search before you accept "nothing to reuse"); Not building names the cuts; every caller, test and fixture the change breaks is in a step.
 
 ## Independent review
 
