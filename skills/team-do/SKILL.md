@@ -37,7 +37,7 @@ You are the team lead. You find the workstreams, size the team, brief and review
   - By default, this checkout: on the current branch, or on a new `team/<short-task-name>` if the current branch is the default branch (`main`, `master`, or what CLAUDE.md names). Tracked files must then have no uncommitted changes (`git status --porcelain --untracked-files=no` empty), since you merge here; untracked files are fine. If it isn't clean, ask the user to commit or set the changes aside; never stash or commit them yourself.
   - With a separate branch: a worktree of your own, `.claude/worktrees/team-integration`, on a new `team/<short-task-name>`. This checkout is never touched.
 
-  Create any new branch or worktree at the start of step 5, so a run that stops before then leaves everything as it was. Run every merge, check and cleanup command in the integration checkout (`git -C <integration checkout>`).
+  Create any new branch or worktree at the start of step 5, so a run that stops before then leaves everything as it was. Run every merge, check and cleanup command in the integration checkout: git commands with `git -C <integration checkout>`, and everything else (install, code generation, lint, typecheck, tests) with the integration checkout as the working directory (`cd <integration checkout> && <command>`), since your shell starts in this checkout.
 
 ## 1. Find the work
 
@@ -74,7 +74,7 @@ A team spends many times the tokens of one session, so show the user the breakdo
 
 ## 5. Run the workstreams
 
-If step 0 decided on a new integration branch, create it now, with a name that doesn't exist yet and isn't a workstream's: in this checkout `git switch -c team/<short-task-name>`; for a separate branch `git worktree add <repository root>/.claude/worktrees/team-integration -b team/<short-task-name>`, then run the project's install and code generation there. Check each workstream's branch (`team/<workstream>`) and worktree path are free too: a previous run may have left NEEDS-HUMAN ones in place. Rename the workstream if not.
+If step 0 decided on a new integration branch, create it now, with a name that doesn't exist yet and isn't a workstream's: in this checkout `git switch -c team/<short-task-name>`; for a separate branch `git worktree add <repository root>/.claude/worktrees/team-integration -b team/<short-task-name>`, then copy in the untracked local files from step 0 and run the project's install and code generation there. Check each workstream's branch (`team/<workstream>`) and worktree path are free too: a previous run may have left NEEDS-HUMAN ones in place. Rename the workstream if not.
 
 Pick a directory outside the repository for plans (your scratchpad if you have one, otherwise a temp directory), and record each workstream's base commit when its planner starts: the integration branch's commit at that moment (`git rev-parse <integration branch>`).
 
@@ -85,6 +85,7 @@ Spawn one teammate per workstream with the `dev-flow:workstream-planner` agent t
 - the workstream: goal, scope, its files, the shared files with what every workstream changes in each, files it must not touch, and why the workstream exists
 - the contracts with other workstreams, word for word, and which teammate owns each other workstream
 - the base commit, and the path of the plan file to write in the plans directory
+- where to read the code: the integration checkout, as an absolute path. It may be ahead of the base commit; where that matters, read the base version with `git -C <integration checkout> show <base commit>:<path>`
 - the plugin's skills directory, as an absolute path: the parent of this skill's base directory, resolved (it holds `lets-do/`, `clean-code/` and `code-modularizer/`)
 
 ### Review each plan

@@ -16,7 +16,7 @@ There are two ways you get started, and the brief tells you which:
 
 ## Read first
 
-Your first tool calls, before reading the plan or any code, read these three files in full from the skills directory in your brief: `lets-do/SKILL.md` (the shape every plan must have), `clean-code/SKILL.md` and `code-modularizer/SKILL.md` (the guidance the plan must embed). If one can't be read, stop and say so (in team mode, to the lead). Then read the brief, the plan, and the code the plan touches at the base commit. The project's CLAUDE.md wins over the skills' generic advice.
+Your first tool calls, before reading the plan or any code, read these three files in full from the skills directory in your brief: `lets-do/SKILL.md` (the shape every plan must have), `clean-code/SKILL.md` and `code-modularizer/SKILL.md` (the guidance the plan must embed). If one can't be read, stop and say so (in team mode, to the lead). Then read the brief, the plan, and the code the plan touches at the base commit, read where the brief says when it names a place (a team-do integration checkout), not your working directory. The project's CLAUDE.md wins over the skills' generic advice.
 
 ## Try to break the plan
 
