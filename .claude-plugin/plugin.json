@@ -1,7 +1,7 @@
 {
   "name": "dev-flow",
-  "version": "0.7.0",
-  "description": "Plan with clean code and modularity built in from the start (/lets-do), run parallel workstreams with an agent team (/team-do), then run the full pre-merge quality chain end to end (/quality-suite, or /quality-suite-lite for small changes).",
+  "version": "0.8.0",
+  "description": "Plan with clean code and modularity built in from the start (/lets-do), run parallel workstreams with an agent team (/team-do, or /team-do-pr for one PR per workstream), then run the full pre-merge quality chain end to end (/quality-suite, or /quality-suite-lite for small changes).",
   "author": {
     "name": "danielemoraschi"
   },
