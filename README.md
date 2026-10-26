@@ -78,7 +78,7 @@ The planners, the plan reviewer and the implementers' quality-suite all apply le
 
 The argument is free text: the work plus any options, in plain words.
 
-- **Team size**: "N teammates" caps how many workstreams run at once (each runs a planner, then an implementer, plus a reviewer while its plan is reviewed). Without it, the lead runs every parallel workstream at once, up to 5, and runs the rest in waves. If only one workstream can run at a time, it says a team isn't worth it and points you to lets-do.
+- **Team size**: "N teammates" caps how many workstreams run at once (each runs a planner, then an implementer, plus a reviewer while its plan is reviewed). Without it, the lead runs up to 5 at once and starts the rest as earlier ones merge, so nobody waits on work they don't depend on; only work that needs another workstream's code waits for a later wave. If only one workstream can run at a time, it says a team isn't worth it and points you to lets-do.
 - **Workstreams**: name them ("one per module", "frontend / backend / tests") and the lead uses yours instead of its own split.
 - **Models**: name one per role ("Sonnet for implementation", "Opus for everything").
 - **Effort** comes from the agent definitions in `agents/` and can't be changed per run. It applies to in-process teammates only; split-pane teammates use the lead's effort.

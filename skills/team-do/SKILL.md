@@ -1,6 +1,6 @@
 ---
 name: team-do
-description: Split a piece of work into parallel workstreams and run them with an agent team - you lead and coordinate; each workstream is planned by a teammate on Opus at high effort using lets-do, given a second correctness pass and an independent adversarial review, then implemented by a teammate at medium effort in its own worktree and validated with quality-suite, then merged one at a time through a queue, rebasing on conflict. Works out the workstreams and team size from the task or the plan already in the conversation. Invoked as /dev-flow:team-do followed by the task or a pointer to the plan; anything the user says in the task overrides these defaults.
+description: Split a piece of work into parallel workstreams and run them with an agent team - you lead and coordinate; each workstream is planned by a teammate on Opus at high effort using lets-do, given a second correctness pass and an independent adversarial review, then implemented by a teammate at medium effort in its own worktree and validated with quality-suite, then merged one at a time through a queue, rebasing on conflict or failing checks. Works out the workstreams and team size from the task or the plan already in the conversation. Invoked as /dev-flow:team-do followed by the task or a pointer to the plan; anything the user says in the task overrides these defaults.
 disable-model-invocation: true
 argument-hint: "[task, plan path, or 'the plan above'] [options in plain words, e.g. 4 teammates]"
 ---
@@ -13,7 +13,7 @@ The task: $ARGUMENTS
 
 The task is free text. Besides the work itself, it can set any of these in plain words, and what it says wins over the defaults below:
 
-- **Team size**: "4 teammates" means at most 4 workstreams running at once (step 3). If you find fewer workstreams than that, use fewer and say so; if more, run them in waves of that size.
+- **Team size**: "4 teammates" means at most 4 workstreams running at once (step 3). If you find fewer workstreams than that, use fewer and say so; if more, start the rest as slots free (step 3).
 - **The workstreams**: if the task names them ("one per module in the plan", "frontend / backend / tests"), use those instead of drawing your own, still checking shared files, design collisions and contracts as in step 2.
 - **Models**: "Sonnet for implementation" and similar. Name the model in the spawn prompt; that wins over the agent definition's model.
 - **Effort** can't be changed per run: it comes from the agent definitions and is fixed at spawn. If the task asks for a different effort, say so in the confirmation.
@@ -31,7 +31,7 @@ You are the team lead. You find the workstreams, size the team, brief and review
 
 - Agent teams must be enabled: `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` in the environment or in settings.json `env`, in an interactive session. Check with `echo $CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`. If it isn't set, stop and tell the user how to enable it; don't fall back to plain subagents silently.
 - This must be a git repository: workstreams always work in their own worktrees.
-- Worktrees go under `.claude/worktrees/` in the repository. Check it's ignored (`git check-ignore -q .claude/worktrees/` from the repository root); if it isn't, add `.claude/worktrees/` to `.git/info/exclude`, which stays local and is never committed, and say so.
+- Worktrees go under `.claude/worktrees/` in the repository. Check it's ignored (`git check-ignore -q .claude/worktrees/` from the repository root); if it isn't, add `.claude/worktrees/` to `"$(git rev-parse --git-common-dir)/info/exclude"` (shared by all worktrees, unlike `.git/info/exclude` inside a linked worktree), which stays local and is never committed, and say so.
 - Tracked files must have no uncommitted changes (`git status --porcelain --untracked-files=no` empty): workstreams branch from the current `HEAD`, so uncommitted changes don't reach them, and you merge their work into this checkout. Untracked files are fine. If it isn't clean, ask the user to commit or set the changes aside; never stash or commit them yourself.
 - Decide the integration branch: the current branch, unless it's the default branch (`main`, `master`, or what CLAUDE.md names) or the task says to integrate on a separate branch. Then it's a new `team/<short-task-name>`, created at the start of step 5, so a run that stops before then leaves the checkout as it was.
 
@@ -55,7 +55,7 @@ A workstream is a self-contained unit with a clear deliverable that one teammate
 ## 3. Size the team
 
 - The team size is the number of workstreams running at once. Each workstream has one teammate at a time (its planner, then its implementer), plus a reviewer while its plan is under review, so planning briefly peaks at two teammates per workstream.
-- Unless the task sets it, run every parallel workstream of a wave at once, up to 5 (the docs' 3-5 sweet spot: more adds coordination and tokens faster than speed). With more workstreams than that, run them in waves of 5.
+- Unless the task sets it, run up to 5 workstreams at once (the docs' 3-5 sweet spot: more adds coordination and tokens faster than speed). When a wave has more, start the rest one at a time as slots free: a workstream frees its slot when it's merged or NEEDS-HUMAN. Waves are only for dependencies, never for team size, so nobody waits on a workstream they don't depend on.
 - Shared files don't stop workstreams running in parallel; only dependencies and design collisions do. If no wave has two or more workstreams, a team adds cost without speed. Say so and suggest `/dev-flow:lets-do` instead, then stop.
 
 ## 4. Review the breakdown, then confirm
@@ -72,7 +72,7 @@ A team spends many times the tokens of one session, so show the user the breakdo
 
 If step 0 decided on a new integration branch, create and check it out now (`git switch -c team/<short-task-name>`), with a name that doesn't exist yet and isn't a workstream's. Check each workstream's branch (`team/<workstream>`) and worktree path are free too: a previous run may have left NEEDS-HUMAN ones in place. Rename the workstream if not.
 
-Pick a directory outside the repository for plans (your scratchpad if you have one, otherwise a temp directory), and record the base commit the wave starts from (`git rev-parse HEAD`).
+Pick a directory outside the repository for plans (your scratchpad if you have one, otherwise a temp directory), and record each workstream's base commit (`git rev-parse HEAD`) when its planner starts: the wave's starting commit for the first ones, the integration branch's commit at that moment for one started later in a freed slot.
 
 ### Plan
 
@@ -89,7 +89,7 @@ When a planner says its plan is ready for review, spawn a `dev-flow:plan-reviewe
 
 ### Review across workstreams
 
-Once every plan in the wave is reviewed and its planner has reported, review the plans together, for what no single reviewer could see:
+Once the wave's first plans are reviewed and their planners have reported, review the plans together, for what no single reviewer could see. A workstream started later in a freed slot gets the same review against every plan in the wave that hasn't merged yet, before its implementer starts.
 
 - **Contracts** match on both sides, and nothing falls between workstreams.
 - **Shared files**: each plan's changes match the breakdown, and no two plans add the same helper. Add up each shared file's planned growth across the plans; a file the wave pushes past the modularizer's limit goes in the report as a follow-up (a foundation workstream next time), since no single plan may split it.
@@ -124,11 +124,11 @@ Work like a team's merge queue: decide and merge each workstream as its implemen
    - Check `git status --porcelain --untracked-files=no` is empty (ask the user if it isn't), then `git merge --no-ff --no-commit team/<workstream>`. If git refuses to start the merge (an untracked file in the way, say), show its message to the user, as for a dirty checkout. If it merged without conflicts and changed dependency manifests, lockfiles or code-generation inputs, run the project's install in frozen or CI mode, and its code generation, first. Then run lint in check mode (no autofix), typecheck and tests, in CI mode where the project has one. Rerun a single new failure once before calling it red: it may be flaky.
    - If the checks changed tracked files (`git diff --name-only` lists them: snapshots, generated files), discard those changes with `git checkout -- .`, which keeps the staged merge, and count the merge as red, with those files as the failing output.
    - Green: `git commit --no-edit`.
-   - A conflict, or red against the baseline: list the conflicting files (`git diff --name-only --diff-filter=U`), `git merge --abort`, note the branch's tip, and send it back to its implementer to rebase onto the integration branch and fix, with the conflicting files or the failing output, and the workstreams it conflicts with and their plan paths.
-   - The failing branch's implementer makes every integration fix on its own branch, even when the fix lands in code another workstream already merged; it can ask that workstream's implementer by name. Before sending such a fix, check no other unmerged workstream in this wave changes that code; if one does, merge that one first.
+   - A conflict, or red against the baseline: list the conflicting files (`git diff --name-only --diff-filter=U`), `git merge --abort` (and if you ran the install for this merge, run it again so the checkout's dependencies match the integration branch), note the branch's tip, and send it back to its implementer to rebase onto the integration branch and fix, with the conflicting files or the failing output, and the workstreams it conflicts with and their plan paths.
+   - The failing branch's implementer makes every integration fix on its own branch. When the fix has to change code another workstream already merged, the implementer asks you first; let it go ahead unless the change is a decision for the user. If that change then conflicts with a branch not yet merged, that branch rebases like any other conflict.
 5. **When a branch comes back,** read `git range-diff --creation-factor=100 <integration branch> <old tip> team/<workstream>`: it shows exactly what changed from the branch you approved, as a diff of each commit's patch. A resolution called mechanical that edits either side's logic goes back for a change-reviewer pass, which isn't a round. Decide each blocking finding the implementer disputed, as for plan reviews; one that stands sends the branch back as its next round. A branch with no open blocking finding rejoins the queue at its original approval position.
 6. **Two rebase rounds per workstream,** then NEEDS-HUMAN, keeping its branch and worktree. A round whose resolution was mechanical and needed no fix commit doesn't count: trivial conflicts in shared files never push a branch to NEEDS-HUMAN.
-7. **Next wave.** The wave is done when every workstream is merged or NEEDS-HUMAN. Ask its implementers to shut down, then start the next wave from the new `HEAD`, without the held workstreams.
+7. **Next wave.** The wave is done when every workstream in it, including ones started in freed slots, is merged or NEEDS-HUMAN. Ask its implementers to shut down, then start the next wave from the new `HEAD`, without the held workstreams.
 
 You don't implement here either: conflicts and integration breakage go back to the implementers.
 
@@ -138,7 +138,7 @@ Do this however the run ends once step 5 has started, including a run that merge
 
 - Ask every remaining teammate to shut down.
 - With the integration branch still checked out (`git branch -d` checks against it), remove each merged workstream's worktree (`git worktree remove`) and branch (`git branch -d`). Both refuse when work would be lost; if one refuses, leave it and say so. Leave NEEDS-HUMAN workstreams' worktrees and branches in place for the user.
-- If the task said to integrate on a separate branch, switch back to the original branch last.
+- If the task said to integrate on a separate branch, switch back to the original branch last; if nothing merged, delete the empty integration branch (`git branch -d`).
 - Don't push or open a pull request; that's the user's part.
 
 ## Report
@@ -151,4 +151,5 @@ End with a short summary. Its first line is the status: "COMPLETE, merged into <
 - waves and workstreams, with the teammates that planned, reviewed and built each
 - per workstream: APPROVED or NEEDS-HUMAN, plan file, review verdict and how disputes were settled, quality-suite status, plan-check result, commits merged
 - integration: the merge order; per workstream, clean or rebased (rounds, resolution mechanical or reviewed); the baseline and each merge's lint/typecheck/test results
+- **follow-ups**: shared files the wave pushed past the size limit, and foundation workstreams planners suggested
 - anything left unfixed, and any worktree or branch left behind
