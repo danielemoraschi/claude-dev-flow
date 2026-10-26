@@ -56,12 +56,12 @@ Claude then checks the plan itself and has the `plan-reviewer` agent attack it (
 
 Runs a piece of work as an [agent team](https://code.claude.com/docs/en/agent-teams), with your session as the lead:
 
-1. The lead finds the work (your task, a plan file, or the plan already in the conversation) and splits it into **workstreams**. Each workstream owns its files and can be built without waiting on another one's unfinished code. Work that others depend on goes in an earlier wave.
-2. It writes down the contracts where workstreams meet, sizes the team, has `plan-reviewer` check the breakdown (every file owned, contracts complete, each workstream bounded), and shows you the breakdown with the review's summary before spawning anyone.
+1. The lead finds the work (your task, a plan file, or the plan already in the conversation) and splits it into **workstreams**, by concern, the way you'd split tickets across a team. Workstreams can share files, since each implementer works in its own worktree; two workstreams never redesign the same code, and each can be built without waiting on another one's unfinished code. Work that others depend on goes in an earlier wave.
+2. It writes down the contracts where workstreams meet, sizes the team, has `plan-reviewer` check the breakdown (every file covered, shared files listed, no design collisions, contracts complete, each workstream bounded), and shows you the breakdown with the review's summary before spawning anyone.
 3. Each workstream gets a **planner** teammate (Opus, high effort). The planner follows lets-do for its workstream and gives the plan a second correctness pass.
 4. A **reviewer** teammate (Opus, high effort) then attacks each plan independently: wrong assumptions about the code, missed edge cases, contract breaks, vague structure or names, over-engineering. It works through graded findings with the planner in at most two rounds, and the lead settles anything still disputed. The lead then reviews all the plans together for consistency across workstreams.
 5. Each workstream then gets an **implementer** teammate (medium effort). The implementer builds the plan in its own worktree, runs quality-suite on it and commits on its own branch.
-6. The lead checks each branch against its plan (file map, design decisions, contracts), merges the approved ones in dependency order and runs lint, typecheck and tests. A workstream that can't be settled stays on its branch as **needs-human**, with the decision you need to make; the rest still merge. Pushing and opening a PR are left to you.
+6. The lead checks each branch against its plan (file map, design decisions, contracts), and merges the approved ones one at a time as they're ready, like a merge queue, testing each merge. A branch that conflicts or breaks the tests goes back to its implementer to rebase and fix, twice at most (trivial conflicts don't count). A workstream that can't be settled stays on its branch as **needs-human**, with the decision you need to make; the rest still merge. Pushing and opening a PR are left to you.
 
 The planners, the plan reviewer and the implementers' quality-suite all apply lets-do's smallest-complete-change rules, and the report lists each workstream's cuts. "question the scope" makes the lead push back on parts of the task at the confirmation, before spawning anyone.
 
@@ -72,7 +72,7 @@ The planners, the plan reviewer and the implementers' quality-suite all apply le
 /dev-flow:team-do one workstream per module in the plan
 /dev-flow:team-do add audit logging: frontend / backend / tests as workstreams, 3 teammates
 /dev-flow:team-do the plan above; Sonnet for implementation, just go
-/dev-flow:team-do the plan above, no worktrees, leave the branches unmerged
+/dev-flow:team-do the plan above, integrate on a separate branch
 /dev-flow:team-do small refactor across three packages, no plan review
 ```
 
@@ -83,14 +83,14 @@ The argument is free text: the work plus any options, in plain words.
 - **Models**: name one per role ("Sonnet for implementation", "Opus for everything").
 - **Effort** comes from the agent definitions in `agents/` and can't be changed per run. It applies to in-process teammates only; split-pane teammates use the lead's effort.
 - **"no plan review"** drops the reviewer; plans go straight to the lead after the planner's second pass.
-- **"just go"** skips the confirmation. **"no worktrees"** keeps everyone in one checkout, on their own files. **"leave the branches unmerged"** still checks and approves each workstream, then lists the branches instead of merging them.
+- **"just go"** skips the confirmation. **"integrate on a separate branch"** runs the whole merge queue on a new `team/...` branch and switches your checkout back to your branch at the end.
 
 Requirements and tips:
 
 - Agent teams are experimental: set `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` (shell or settings.json `env`) and run Claude Code interactively. Without it, team-do stops and tells you.
 - Run the lead at high effort. Your session is the lead, and it does the highest-judgment work in the run: splitting the work, fixing the contracts, reviewing the plans together and checking each branch against its plan. Split-pane teammates also take the lead's effort instead of their agent's.
-- Workstreams branch from your current commit, so commit anything they depend on first. Their worktrees go under `.claude/worktrees/`. On the default branch, the lead creates a `team/...` branch to integrate on.
-- Teammate permission prompts show up in the lead's session: pre-approve common commands (tests, git worktree, your build tool) before a long run.
+- Workstreams branch from your current commit and the lead merges into your checkout, so commit or set aside changes to tracked files first (untracked files are fine). Worktrees go under `.claude/worktrees/`. On the default branch, the lead creates a `team/...` branch to integrate on.
+- Teammate permission prompts show up in the lead's session: pre-approve common commands (tests, git worktree, git merge, git rebase, your build tool) before a long run.
 - A team costs many times the tokens of one session; use it for work that genuinely splits.
 
 ## quality-suite
@@ -175,12 +175,12 @@ dev-flow ships four agents in `agents/`:
 | `dev-flow:workstream-planner` | Opus, high | Plans one workstream with lets-do, second correctness pass, answers the reviewer |
 | `dev-flow:plan-reviewer` | Opus, high | Attacks a plan independently, including anything it builds that the task doesn't need, and reports a verdict; used by lets-do and team-do |
 | `dev-flow:change-reviewer` | Opus, high | Reviews a finished change for what the chain missed, including code that didn't need to exist; used by quality-suite |
-| `dev-flow:workstream-implementer` | lead's model, medium | Builds the approved plan in its own worktree, runs quality-suite, commits on its branch |
+| `dev-flow:workstream-implementer` | lead's model, medium | Builds the approved plan in its own worktree, runs quality-suite, commits on its branch, and rebases it when it conflicts |
 
-The planner and implementer are written as teammates for team-do. Each expects a brief from a lead (goal, owned files, contracts, base commit, the plugin's skills directory, paths) and reports back to that lead. You can still use them directly as subagents if you give them that brief yourself:
+The planner and implementer are written as teammates for team-do. Each expects a brief from a lead (goal, files with shared ones marked, contracts, base commit, the plugin's skills directory, paths) and reports back to that lead. You can still use them directly as subagents if you give them that brief yourself:
 
 ```
-use the dev-flow:workstream-planner agent to plan the export module: it owns src/export/,
+use the dev-flow:workstream-planner agent to plan the export module: its files are src/export/,
 must not touch src/reports/, base commit HEAD, skills directory <path>/skills,
 write the plan to /tmp/export-plan.md
 ```
@@ -189,7 +189,7 @@ lets-do runs the reviewer for you on every non-trivial plan. You can also point 
 
 ```
 use the dev-flow:plan-reviewer agent on /tmp/export-plan.md: goal is CSV export
-from the reports page, owns src/export/, base commit HEAD, skills directory <path>/skills
+from the reports page, its files: src/export/, base commit HEAD, skills directory <path>/skills
 ```
 
 For planning in your own session, lets-do is usually the better fit. The planner is lets-do run for one workstream of a larger split, on Opus at high effort, without talking to you, with a second correctness pass and a review round required. The implementer has no skill counterpart.
