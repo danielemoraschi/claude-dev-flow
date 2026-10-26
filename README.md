@@ -56,7 +56,7 @@ Claude then checks the plan itself and has the `plan-reviewer` agent attack it (
 
 Runs a piece of work as an [agent team](https://code.claude.com/docs/en/agent-teams), with your session as the lead:
 
-1. The lead finds the work (your task, a plan file, or the plan already in the conversation) and splits it into **workstreams**, by concern, the way you'd split tickets across a team. Workstreams can share files, since each implementer works in its own worktree; two workstreams never rewrite the same existing logic (adding side by side is fine), and each can be built without waiting on another one's unfinished code. Work that others depend on goes in an earlier wave.
+1. The lead finds the work (your task, a plan file, or the plan already in the conversation) and splits it into **workstreams**, by concern, the way you'd split tickets across a team. Workstreams can share files, since each implementer works in its own worktree; two workstreams never rewrite the same existing logic (adding side by side is fine), and each can be built without waiting on another one's unfinished code. Work that others depend on runs first, and they start as soon as it's merged.
 2. It writes down the contracts where workstreams meet, sizes the team, has `plan-reviewer` check the breakdown (every file covered, shared files listed, no design collisions, contracts complete, each workstream bounded), and shows you the breakdown with the review's summary before spawning anyone.
 3. Each workstream gets a **planner** teammate (Opus, high effort). The planner follows lets-do for its workstream and gives the plan a second correctness pass.
 4. A **reviewer** teammate (Opus, high effort) then attacks each plan independently: wrong assumptions about the code, missed edge cases, contract breaks, vague structure or names, over-engineering. It works through graded findings with the planner in at most two rounds, and the lead settles anything still disputed. The lead then reviews all the plans together for consistency across workstreams.
@@ -78,18 +78,18 @@ The planners, the plan reviewer and the implementers' quality-suite all apply le
 
 The argument is free text: the work plus any options, in plain words.
 
-- **Team size**: "N teammates" caps how many workstreams run at once (each runs a planner, then an implementer, plus a reviewer while its plan is reviewed). Without it, the lead runs up to 5 at once and starts the rest as earlier ones merge, so nobody waits on work they don't depend on; only work that needs another workstream's code waits for a later wave. If only one workstream can run at a time, it says a team isn't worth it and points you to lets-do.
+- **Team size**: "N teammates" caps how many workstreams run at once (each runs a planner, then an implementer, plus a reviewer while its plan is reviewed). Without it, the lead runs up to 5 at once and starts the rest as slots free. A workstream waits only for the workstreams it depends on, never for unrelated ones. If only one workstream can run at a time, it says a team isn't worth it and points you to lets-do.
 - **Workstreams**: name them ("one per module", "frontend / backend / tests") and the lead uses yours instead of its own split.
 - **Models**: name one per role ("Sonnet for implementation", "Opus for everything").
 - **Effort** comes from the agent definitions in `agents/` and can't be changed per run. It applies to in-process teammates only; split-pane teammates use the lead's effort.
 - **"no plan review"** drops the reviewer; plans go straight to the lead after the planner's second pass.
-- **"just go"** skips the confirmation. **"integrate on a separate branch"** runs the whole merge queue on a new `team/...` branch and switches your checkout back to your branch at the end.
+- **"just go"** skips the confirmation. **"integrate on a separate branch"** runs the merge queue in the lead's own worktree on a new `team/...` branch, so your checkout and branch are never touched; `git switch team/...` to see the result.
 
 Requirements and tips:
 
 - Agent teams are experimental: set `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` (shell or settings.json `env`) and run Claude Code interactively. Without it, team-do stops and tells you.
 - Run the lead at high effort. Your session is the lead, and it does the highest-judgment work in the run: splitting the work, fixing the contracts, reviewing the plans together and checking each branch against its plan. Split-pane teammates also take the lead's effort instead of their agent's.
-- Workstreams branch from your current commit and the lead merges into your checkout, so commit or set aside changes to tracked files first (untracked files are fine). Worktrees go under `.claude/worktrees/`. On the default branch, the lead creates a `team/...` branch to integrate on.
+- Workstreams branch from your current commit, and by default the lead merges into your checkout, so commit or set aside changes to tracked files first (untracked files are fine). Untracked local files the tests need (an `.env`, local config) are copied into each worktree: list them in `.worktreeinclude`, or the lead asks. Worktrees go under `.claude/worktrees/`. On the default branch, the lead creates a `team/...` branch to integrate on.
 - Teammate permission prompts show up in the lead's session: pre-approve common commands (tests, git worktree, git merge, git rebase, your build tool) before a long run.
 - A team costs many times the tokens of one session; use it for work that genuinely splits.
 
