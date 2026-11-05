@@ -6,7 +6,7 @@ A Claude Code plugin for planning and finishing changes.
 |---|---|---|
 | `/dev-flow:lets-do` | Plans a task with clean-code and modularity built in, plus a quality-suite gate | You only |
 | `/dev-flow:team-do` | Splits work into parallel workstreams and runs them with an agent team | You only |
-| `/dev-flow:team-do-pr` | Like team-do, but opens one PR per workstream and keeps them up to date as you merge (`continue`) | You only |
+| `/dev-flow:team-do-pr` | Like team-do, but opens one PR per workstream, stacking the ones that conflict or depend on each other, and keeps them up to date as you merge (`continue`) | You only |
 | `/dev-flow:quality-suite` | Runs the full pre-merge review chain on the branch, fixing as it goes | You, or Claude when you ask to get a change ready to merge |
 | `/dev-flow:quality-suite-lite` | Same chain, one pass each and no independent reviewer: for small changes | You only |
 | `/dev-flow:clean-code` | Readability pass: naming, function size, comments, error handling | You, or Claude when relevant |
@@ -14,7 +14,7 @@ A Claude Code plugin for planning and finishing changes.
 
 The short forms (`/lets-do`, `/team-do`, ...) usually work too, unless another skill has the same name. `/simplify`, `/code-review` and `/security-review`, which quality-suite runs, are built into Claude Code.
 
-A typical change: `/dev-flow:lets-do` to plan it, implement the plan, `/dev-flow:quality-suite` to polish it, then commit and merge. For work that splits into independent pieces, `/dev-flow:team-do` does all of that in parallel, and `/dev-flow:team-do-pr` does it as one PR per workstream.
+A typical change: `/dev-flow:lets-do` to plan it, implement the plan, `/dev-flow:quality-suite` to polish it, then commit and merge. For work that splits into independent pieces, `/dev-flow:team-do` does all of that in parallel, and `/dev-flow:team-do-pr` does it as one PR per workstream, stacked where they conflict.
 
 ## Install
 
@@ -101,23 +101,28 @@ For one PR per workstream instead of one integrated branch, use team-do-pr.
 The same team, the other way teams ship: each workstream becomes its own pull request. You review and merge them on GitHub, and the lead keeps the rest up to date as you go.
 
 1. It runs team-do as above, up to the merge queue. The queue is a private rehearsal on a branch that's never pushed: it proves the workstreams work together, conflicts resolved and tests green, before anything is published.
-2. It rebuilds each workstream as a branch holding only its own commits, on your base branch, or on the one workstream it depends on.
+2. It rebuilds each workstream as a branch holding only its own commits. Workstreams whose changes would conflict, or that depend on each other, become a stack: each PR based on the one below it, carrying the rehearsal's conflict fixes, so nothing is resolved twice. The rest go straight on your base branch.
 3. It shows you every branch, PR title and base, and asks before pushing anything. This confirmation can't be skipped, even with "just go".
 4. It pushes the branches and opens the PRs, ready for review.
 
-PRs are independent, stacked only on a real dependency. Say A and C are independent and B depends on A: you get #11 A → `main`, #12 C → `main`, and #13 B → `team/a`. You merge #11 and #12 in any order. #13 waits until #11 is merged and `continue` has retargeted it to `main`: merged while its base is still `team/a`, it would land in `team/a`, not in `main`. A workstream depends on at most one other, since a PR has one base: if B needs both A and C, the lead makes A+C one workstream. A workstream that calls an endpoint or event another one adds depends on it, so it can't be merged first.
+Say A and C change the same block of `routes.ts`, B depends on A, and D adds a route 200 lines away, which doesn't conflict. You get a stack, #11 A → `main`, #12 C → `team/a`, #13 B → `team/c`, and an independent #14 D → `main`. D merges any time. The stack merges bottom-up, and each PR only once its status line (at the top of its description) says **Ready**: after you merge #11, run `continue`, which retargets #12 to `main` and marks it Ready. Merged earlier, a stacked PR would land in its parent's branch, not in `main`; and GitHub may retarget it on its own when the parent's branch is deleted, which doesn't make it ready. A workstream that calls an endpoint or event another one adds depends on it, so it's stacked above it.
 
-After you merge any of them, run `continue`. It finds the run's open PRs, rebases a stacked PR whose parent merged and the ones your merges left in conflict or with red CI, restacks their children, and runs the checks against a fresh baseline of your base branch, all locally. Real conflicts go to an implementer, as in team-do. Then it lists what it would force-push and retarget, and asks before doing it. The pushes use a lease: if anyone pushed to a PR branch meanwhile, that PR is reported to you instead. It ends by saying which PRs are mergeable now. It never merges a PR and never pushes to your base branch.
+Stacked PRs may show no CI until they target `main`, if your CI only runs on PRs into it. The lead's local checks are their proof until then. When `continue` rebases a PR it retargets before pushing, so CI runs against `main`; when it only retargets one (after a merge-commit merge), it closes and reopens the PR, which starts CI.
+
+Whenever a stack was formed by conflicts, the confirmation also offers **stack only on dependencies**, useful when one stack swallows most of the run: workstreams linked only by conflicts become independent PRs, and their conflicts get resolved again, at rebuild and by `continue`. Say **independent PRs** in the task for that from the start, with every PR on the base and stacked only on a single dependency (so a workstream can depend on at most one other). Choose it when you need to merge overlapping work in any order.
+
+After you merge any of them, run `continue`. It finds the run's open PRs, retargets a stacked PR whose parent merged (rebasing it first after a squash merge), rebases the ones your merges left in conflict or with red CI, restacks their children, and runs the checks against a fresh baseline of your base branch, all locally. Real conflicts go to an implementer, as in team-do. Then it lists what it would force-push and retarget, and asks before doing it. The pushes use a lease: if anyone pushed to a PR branch meanwhile, that PR is reported to you instead. It updates each PR's status line and ends by saying which PRs are ready to merge now. It never merges a PR and never pushes to your base branch.
 
 ```
 /dev-flow:team-do-pr docs/plans/billing.md
 /dev-flow:team-do-pr add audit logging: frontend / backend / tests as workstreams
+/dev-flow:team-do-pr docs/plans/billing.md, independent PRs
 /dev-flow:team-do-pr continue
 ```
 
 It takes team-do's options, and needs:
 
-- a GitHub remote, `gh` installed and authenticated, and git 2.38 or later;
+- a GitHub remote, `gh` installed and authenticated, and git 2.40 or later;
 - your base branch pushed: the current branch, with no unpushed commits, since they'd land in every PR. The PRs target it.
 
 It doesn't assign reviewers or labels, answer review comments, or open PRs for workstreams that need you; those stay local, with the decision to make.
