@@ -17,7 +17,7 @@ Your first tool calls, before reading any project code, read these two files in 
 - `${CLAUDE_SKILL_DIR}/../clean-code/SKILL.md`
 - `${CLAUDE_SKILL_DIR}/../code-modularizer/SKILL.md`
 
-Do this on every run, even if you read them earlier in this conversation: earlier reads may have been compacted into a summary, and a summary isn't the guidance. Read them as guidance; don't invoke them as skills or run their workflows on the existing code.
+Do this on every run, even if you read them earlier in this conversation: earlier reads may have been compacted into a summary, and a summary isn't the guidance. Read them as guidance while planning; don't invoke them as skills or run their workflows on the existing code now. (The quality gate later invokes them as steps of the quality suite, which is different.)
 
 Then say in one line that you read them, with each file's line count, so the user can see it happened. If a file can't be read, stop and say so instead of planning without it.
 
@@ -81,12 +81,12 @@ Then have the plan attacked by someone who didn't write it. Skip this only when 
 
 ## Quality gate
 
-Add a quality-suite pass to the plan's quality gates (add a quality-gates section if the plan has none), to run on the finished change before it's committed and merged. This one is a gate to run, not guidance to embed.
+Add a quality-suite pass to the plan's quality gates (add a quality-gates section if the plan has none), to run on the finished change before it's committed and merged. This one is a gate to run, not guidance to embed. Write it in the plan word for word, so it survives after this skill has left the context: "Invoke `dev-flow:quality-suite` with the Skill tool on the finished change (args `lite` for the lite gate, plus "chosen by size" or "the user's choice" as this plan marks it). Doing its steps yourself isn't the gate; don't say the change went through the quality suite until that run reports COMPLETE."
 
 If the task names one ("use quality-suite-lite", "full quality-suite"), use it and write the gate as **the user's choice**. Otherwise choose from the plan itself, write the gate as **chosen by size**, and give the reason in one line:
 
-- **`/dev-flow:quality-suite-lite`** when the file map shows a small, contained change: roughly under 100 changed lines, a handful of files, and no new modules.
-- **`/dev-flow:quality-suite`** otherwise, and always when the change is risky whatever its size: a public API, data or migrations, or anything the user calls critical.
+- **lite** (`dev-flow:quality-suite` with args `lite`; `/dev-flow:quality-suite-lite` is only the user's shortcut, which Claude can't invoke) when the file map shows a small, contained change: roughly under 100 changed lines, a handful of files, and no new modules.
+- **full** (`dev-flow:quality-suite`) otherwise, and always when the change is risky whatever its size: a public API, data or migrations, or anything the user calls critical.
 
 The user approves the choice with the plan. If lite was chosen by size and the finished change turns out bigger than planned, the lite run switches to the full suite on its own; lite as the user's choice stays lite.
 

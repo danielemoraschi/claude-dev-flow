@@ -36,7 +36,7 @@ Plans the task the way you'd want it built. Before designing anything, Claude re
 - a **file map**: every new or changed file, the one concept it holds, its measured current size and its expected size, with any file that would grow too big split as part of the plan;
 - in **every step**: *structure* (files touched, what gets extracted), *code* (the functions and types, each named for one job), *reuses* (what it uses instead of writing new code, or "nothing to reuse" and what was checked), *errors* (how failures are handled and where) and *tests* (named for the behavior they prove).
 
-Claude then checks the plan itself and has the `plan-reviewer` agent attack it (Opus, high effort), folding the fixes into the steps and adding a short review summary. A second round runs when a blocking finding was fixed or disputed, so a dispute is settled by a reviewer, not by the plan's author. If the agent isn't loaded yet (right after a plugin update, before a restart), a general-purpose subagent reads its file and acts as it. The review is skipped for trivial plans or with "no plan review". The plan ends with a quality-suite pass as the quality gate: `/dev-flow:quality-suite-lite` when the plan is small and contained, the full suite otherwise or when the change is risky, with the reason given; you approve it with the plan.
+Claude then checks the plan itself and has the `plan-reviewer` agent attack it (Opus, high effort), folding the fixes into the steps and adding a short review summary. A second round runs when a blocking finding was fixed or disputed, so a dispute is settled by a reviewer, not by the plan's author. If the agent isn't loaded yet (right after a plugin update, before a restart), a general-purpose subagent reads its file and acts as it. The review is skipped for trivial plans or with "no plan review". The plan ends with a quality-suite pass as the quality gate, which Claude runs by invoking `dev-flow:quality-suite`: lite when the plan is small and contained, the full suite otherwise or when the change is risky, with the reason given; you approve it with the plan.
 
 ```
 /dev-flow:lets-do add CSV export to the reports page
@@ -139,7 +139,7 @@ Runs the pre-merge chain on the current branch's changes, end to end, without st
 6. independent verification: a `change-reviewer` agent that didn't write the code looks for what the chain missed
 7. lint, typecheck and tests
 
-Steps 1–5 each run again while they keep finding material issues, up to 3 passes, with fresh subagents for repeat passes and large diffs. Step 6 looks where a self-run, diff-focused review doesn't: claims in the plan, docs and copy against what the code does, tests that can't fail, effects on code the change didn't write, failure paths, duplication, and whether the findings the chain declined deserved it. You fix what it finds or dispute it; a second round runs when anything blocking or should-fix was fixed or disputed, and a blocking finding still held makes the run INCOMPLETE. It's skipped for trivial diffs or with "no verification". When it hands back, only commit and merge are left.
+Steps 1–5 each run again while they keep finding material issues, up to 3 passes. Steps 1 and 5 can use fresh subagents for repeat passes and large diffs; simplify, security-review and code-review start their own review agents, so they always run in the main thread. Step 6 looks where a self-run, diff-focused review doesn't: claims in the plan, docs and copy against what the code does, tests that can't fail, effects on code the change didn't write, failure paths, duplication, and whether the findings the chain declined deserved it. You fix what it finds or dispute it; a second round runs when anything blocking or should-fix was fixed or disputed, and a blocking finding still held makes the run INCOMPLETE. It's skipped for trivial diffs or with "no verification". When it hands back, only commit and merge are left.
 
 ```
 /dev-flow:quality-suite
@@ -160,7 +160,7 @@ get this ready to merge
 - The scope defaults to everything on the branch since it left the base branch: commits, staged and unstaged changes, and new files.
 - Running it on a commit that's already merged reviews just that change, and puts the fixes on a new short-lived branch.
 - It asks you only for decisions that are genuinely yours, such as a change to public API or two designs with real trade-offs. Everything else it fixes.
-- The report starts with `COMPLETE` or `INCOMPLETE`. It never commits, pushes or merges.
+- The report starts with `COMPLETE` or `INCOMPLETE`, and shows how each step ran (which skill, how many passes). A core step (simplify, code-review, clean-code, verify, and security-review when the diff needs it) that wasn't run through its skill, because it's missing, failed or Claude did the work itself instead, makes the run `INCOMPLETE`. It never commits, pushes or merges.
 
 ### Lite, for small changes
 
@@ -174,7 +174,7 @@ get this ready to merge
 | independent verification | runs | skipped |
 | lint, typecheck, tests, CLAUDE.md's gates | runs | the same |
 
-Use it for small, contained changes: roughly under 100 changed lines, a handful of files, no new modules. On a bigger diff it says so and recommends the full suite, then runs what you asked for. When Claude starts quality-suite on its own, it always runs the full chain. lets-do can pick lite for a small plan; if the finished change turns out bigger than planned, that lite run switches to the full suite. Naming one in the task ("use quality-suite-lite", "full quality-suite") always wins, and a lite you chose stays lite. team-do's implementers run the full suite unless the task asks for lite.
+Use it for small, contained changes: roughly under 100 changed lines, a handful of files, no new modules. On a bigger diff it says so and recommends the full suite, then runs what you asked for. When Claude starts quality-suite on its own, it always runs the full chain. lets-do can pick lite for a small plan (Claude runs it as `/dev-flow:quality-suite lite`; `/dev-flow:quality-suite-lite` is your shortcut); if the finished change turns out bigger than planned, that lite run switches to the full suite. Naming one in the task ("use quality-suite-lite", "full quality-suite") always wins, and a lite you chose stays lite. team-do's implementers run the full suite unless the task asks for lite.
 
 ```
 /dev-flow:quality-suite-lite
