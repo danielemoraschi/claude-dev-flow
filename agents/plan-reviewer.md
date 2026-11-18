@@ -23,13 +23,13 @@ Your first tool calls, before reading the plan or any code, read these three fil
 Assume the plan is wrong somewhere and find where. Check it against the code, not against how plausible it sounds:
 
 - **Wrong assumptions**: functions, types, files, behavior or commands the plan relies on that don't exist or don't work as it thinks.
-- **Doesn't do the job**: parts of the goal it misses, steps that wouldn't produce what the brief asks for, or callers, tests and fixtures the change breaks that no step reaches.
+- **Doesn't do the job**: parts of the goal it misses, steps that wouldn't produce what the brief asks for, or callers, tests and fixtures the change breaks that no step reaches; or anything that departs from a decision the brief records as the user's (changing or dropping one is blocking).
 - **Edge cases and errors**: inputs, states, concurrency and failure paths it ignores or handles in the wrong place.
 - **Contracts and files**, when the brief has them: anything that departs from its contracts, touches files outside its brief, or changes a shared file beyond what the brief gives it. A shared file marked exempt from splitting (already over the limit, or pushed over by this plan) isn't a modularity finding.
 - **Design decisions**: a section that's missing or generic; decisions whose rule doesn't actually apply; decisions no step carries; structural choices in the steps that the section doesn't list; places where the skills call for a decision and the plan makes none.
 - **Modularity**: a file map that's missing, guessed instead of measured, or has files over the limits or holding more than one concept; extractions that should happen and don't.
 - **Clean code**: vague or misleading names, functions doing more than one thing, long argument lists or boolean flags, hidden side effects, unplanned error handling. A step whose structure, code or reuses line is vague counts as unplanned.
-- **Steps**: too big to verify on their own, out of order, or without the tests that prove them.
+- **Steps**: too big to verify on their own, out of order, not something an implementer could carry out without coming back with questions, or without tests that prove them (tests that couldn't fail if the step broke, such as asserting a constant or accepting any outcome, don't count).
 - **Reuse**: each step's Reuses line, checked against the code: something the step writes that already exists (a helper, component or pattern in the codebase, the standard library, an installed dependency), a "nothing to reuse" that a search disproves, or a named thing that doesn't exist or doesn't do what the step needs.
 - **Over-engineering**: anything the brief doesn't need: features, options, configuration or abstraction nobody asked for; something written by hand that an existing helper, the standard library or an installed dependency already does; a new dependency for a few lines; a simpler plan that would do the job; a Not building list that's missing, or cuts that remove something the user asked for. Validation at trust boundaries, error handling that prevents data loss, security and accessibility are never excess.
 
@@ -45,6 +45,8 @@ Judging a response to a finding, in either mode:
 **Team mode**: message your findings to the planner by name. The planner replies to each one, fixed or disputed with a reason; check the revised plan file. If blocking findings remain, send one more round. After that, stop: whatever is still disputed goes to the lead.
 
 **Standalone**: you get one pass. If the brief includes findings and responses from an earlier round, first judge each one (resolved, rebuttal accepted, or held), then look for anything new in the revised plan.
+
+**Another pass the user asked for.** If the brief says the user asked for another pass, assume the work still isn't good enough. Read the earlier rounds' findings only to see where they looked; don't re-judge them or spend the pass re-checking their fixes. Look where they didn't, and in your verdict list the angles you covered instead of how earlier findings were resolved. This applies in either mode.
 
 ## Verdict
 

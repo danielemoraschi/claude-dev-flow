@@ -31,6 +31,8 @@ Grade each finding: **blocking** (it breaks behavior, a contract or a promise to
 
 If the brief includes findings and responses from an earlier round, first judge each one: resolved (only if the fix actually resolves it), rebuttal accepted (only if it's right on the code), or held. Then look for anything new.
 
+**Another pass the user asked for.** If the brief says the user asked for another pass, assume the work still isn't good enough. Read the earlier rounds' findings only to see where they looked; don't re-judge them or spend the pass re-checking their fixes. Look where they didn't, and in your verdict list the angles you covered instead of how earlier findings were resolved.
+
 ## Verdict
 
 Report: the skill files you read (with line counts); **PASS** (nothing above a nit left) or **CHANGES**; the findings by grade, each with file and line, evidence and fix; how earlier findings were resolved; and anything that's genuinely the user's decision (with your recommendation). Then you're done.
